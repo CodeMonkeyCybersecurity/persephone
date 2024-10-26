@@ -555,71 +555,59 @@ def borg_compact():
 # print("(6) create              (Create backup)")
 @error_handler
 def create_backup(config):
-    """Create a new Borg backup based on the configuration values."""
-    while not validate_yaml_config():
-        retry = input("Configuration is incomplete or invalid. Would you like to go back to configure it? (Y/N): ").strip().lower()
-        if retry == 'y':
-            create_yaml_config()  # Call the configuration setup
-            config = load_config()  # Reload the updated config
-        else:
-            print("Exiting. Please update the configuration file and try again.")
-            return False  # Exit if user chooses not to retry
-            
-    try:
-        # Retrieve Borg configurations
-        repo = config['borg'].get('repo')
-        passphrase = config['borg'].get('passphrase')
-        encryption_type = config['borg'].get('encryption', 'repokey')  # Default to 'repokey' if not set
-        rsh = config['borg'].get('rsh')  # Optional SSH command for Borg RSH
+    config = load_config()
 
-        # Set up environment for Borg with passphrase and RSH if provided
-        env = os.environ.copy()
-        env['BORG_PASSPHRASE'] = passphrase
-        if rsh:
-            env['BORG_RSH'] = rsh  # Set the custom RSH command if specified
-
-        # Check disk space in temporary directory
-        tmp_dir = "/tmp"
-        if os.path.exists(tmp_dir):
-            result = subprocess.run(['df', '-h', tmp_dir], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            if result.returncode == 0:
-                output = result.stdout
-                logging.info(f"Disk space check for {tmp_dir}:\n{output}")
-                print(f"Disk space check for {tmp_dir}:\n{output}")
-                env["TMPDIR"] = tmp_dir  # Set TMPDIR in the environment
-            else:
-                logging.error(f"Error checking disk space: {result.stderr}")
-                print(f"Error: Disk space check failed. {result.stderr}")
-        else:
-            raise FileNotFoundError(f"Temporary directory {tmp_dir} does not exist")
-
-        # Check SSH key for Borg RSH if required
-        ssh_key_path = os.path.expanduser("~/.ssh/id_ed25519")
-        if os.path.exists(ssh_key_path):
-            env["BORG_RSH"] = f"ssh -i {ssh_key_path}"
-            logging.info(f"BORG_RSH set to use SSH key: {ssh_key_path}")
-        else:
-            logging.warning(f"SSH key not found at {ssh_key_path}. RSH will be used as configured.")
-
-        # Run Borg init command to create the repository
-        borg_init_cmd = ['borg', 'init', '--encryption', encryption_type, repo]
-        result = subprocess.run(borg_init_cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, text=True)
-
-        logging.info(f"Repository {repo} created successfully.")
-        print(f"Repository {repo} created successfully.")  # Success message
-        return True  # Indicate success
-
-    except subprocess.CalledProcessError as e:
-        logging.error(f"Failed to create Borg repository: {e.stderr}")
-        print(f"Error: Failed to create repository {repo}. {e.stderr}")  # Failure message
-        return False  # Indicate failure
-    except Exception as e:
-        logging.error(f"An error occurred during repository creation: {e}")
-        print(f"Error: {e}")
-        return False
+    while True:
+        print("\nCreate Options:")
+        print("1. Specify Archive")
+        print("2. Specify Repo Path")
+        print("3. Specify Additional Options")
+        print("4. Run Create Command")
+        print("5. Return to Main Menu")
         
-    # Display the submenu using the existing submenu handler
-    submenu_handler(options)
+        choice = input("Select an option: ")
+
+        if choice == '1':
+            config['archive'] = prompt_user("archive", config.get('archive', '<archive_default>'))
+        elif choice == '2':
+            config['repo_path'] = prompt_user("repo_path", config.get('repo_path', '<repo_path_default>'))
+        elif choice == '3':
+            additional_options(config)
+        elif choice == '4':
+            run_create(config)
+        elif choice == '5':
+            break
+        else:
+            print("Invalid choice. Please try again.")
+
+        save_config(config)
+
+def prompt_user(option, default):
+    user_input = input(f"Enter {option} (default: {default}): ")
+    return user_input if user_input else default
+
+def additional_options(config):
+    # Prompt for additional settings
+    config['passphrase'] = prompt_user("passphrase", config.get('passphrase', 'default_passphrase'))
+    config['encryption'] = prompt_user("encryption", config.get('encryption', 'default_encryption'))
+    config['rsh'] = prompt_user("remote shell command (rsh)", config.get('rsh', 'default_rsh'))
+    config['paths_to_backup'] = prompt_user("paths to backup", config.get('paths_to_backup', '/etc /home'))
+    config['exclude_patterns'] = prompt_user("exclude patterns", config.get('exclude_patterns', '.cache, var/tmp'))
+    config['compression'] = prompt_user("compression", config.get('compression', 'lz4'))
+    config['prune'] = prompt_user("prune policy", config.get('prune', 'default_prune'))
+
+def run_create(config):
+    # Construct the create command
+    paths = config.get('paths_to_backup')
+    exclude_patterns = config.get('exclude_patterns', '')
+    cmd = (
+        f"borg create --compression {config.get('compression')} --rsh '{config.get('rsh')}' "
+        f"{config.get('repo_path')}::{config.get('archive')} {paths} "
+        f"{'--exclude ' + exclude_patterns if exclude_patterns else ''}"
+    )
+    print("Running command:", cmd)
+    # Execute the command with subprocess if needed
+
 
 
 # print("(7) debug               (Debugging command)")
