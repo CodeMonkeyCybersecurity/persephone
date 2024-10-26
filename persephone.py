@@ -76,6 +76,129 @@ def validate_or_create_config():
             print("Configuration file is required to proceed.")
             sys.exit(1)
 
+REQUIRED_KEYS = {
+    'borg': ['repo', 'passphrase', 'encryption', 'rsh'],
+    'backup': ['paths_to_backup', 'exclude_patterns', 'compression', 'prune']
+}
+
+def validate_yaml_config():
+    """Validate the YAML configuration file to ensure all required values are present."""
+    if not os.path.exists(CONFIG_PATH):
+        logging.error("Configuration file does not exist at the specified path.")
+        print(f"Error: Configuration file not found at {CONFIG_PATH}. Please create it first.")
+        return False
+    
+    try:
+        # Load the YAML file
+        with open(CONFIG_PATH, 'r') as file:
+            config = yaml.safe_load(file)
+
+        # Check for required keys and subkeys
+        missing_keys = []
+        for section, keys in REQUIRED_KEYS.items():
+            if section not in config:
+                missing_keys.append(section)
+            else:
+                for key in keys:
+                    if key not in config[section]:
+                        missing_keys.append(f"{section}.{key}")
+
+        # If there are missing keys, log and print the details
+        if missing_keys:
+            logging.error(f"Missing configuration values: {', '.join(missing_keys)}")
+            print(f"Error: The configuration is missing the following required values:\n - " +
+                  "\n - ".join(missing_keys))
+            return False
+
+        # All keys are accounted for
+        logging.info("Configuration file validated successfully, all values are accounted for.")
+        print("Configuration file is complete and validated.")
+        return True
+
+    except yaml.YAMLError as e:
+        logging.error(f"Error loading configuration file: {e}")
+        print(f"Error: Could not load configuration file due to a YAML error. {e}")
+        return False
+
+@error_handler
+def create_yaml_config():
+    """Create the YAML config file at {CONFIG_PATH} with default values.
+
+    This function allows the user to enter configuration settings for BorgBackup. If
+    the user does not provide an input, the default value is used.
+    """
+    # Hardcoded default values
+    hardcoded_defaults = {
+        'borg': {
+            'repo': "user@backup-hostname:/path/to/borgRepo",
+            'passphrase': "SecretPassword",
+            'encryption': "repokey",
+            'rsh': "ssh -i /path/to/id_ed25519" 
+        },
+        'backup': {
+            'paths_to_backup': ["/var", "/etc", "/home", "/root", "/opt", "/mnt", "/usr"],
+            'exclude_patterns': ["home/*/.cache/*", "var/tmp/*"],
+            'compression': "zstd"
+        }
+    }
+    
+    # Load existing config if it exists, else use hardcoded defaults
+    config = load_config() or hardcoded_defaults
+
+    # Prompt user for each setting, using the loaded value as the default
+    config['borg']['repo'] = input(f"Enter the Borg repository path (default: {config['borg']['repo']}): ") or config['borg']['repo']
+    config['borg']['passphrase'] = input(f"Enter the Borg passphrase (default: {config['borg']['passphrase']}): ") or config['borg']['passphrase']
+    config['borg']['encryption'] = input(f"Enter the encryption type (e.g., repokey, none, default: {config['borg']['encryption']}): ") or config['borg']['encryption']
+
+    # Prompt user for the SSH command if they want to set it
+    config['borg']['rsh'] = input(f"Enter the SSH command for Borg (default: {config['borg']['rsh']}): ") or config['borg']['rsh']
+    
+    # Get backup settings
+    paths_to_backup = input(f"Enter the directories to back up (comma-separated, default: {','.join(config['backup']['paths_to_backup'])}): ")
+    config['backup']['paths_to_backup'] = paths_to_backup.split(',') if paths_to_backup else config['backup']['paths_to_backup']
+
+    #Exclude patterns
+    exclude_patterns = input(f"Enter exclude patterns (comma-separated, default: {','.join(config['backup']['exclude_patterns'])}): ")
+    config['backup']['exclude_patterns'] = exclude_patterns.split(',') if exclude_patterns else config['backup']['exclude_patterns']
+
+    # Compression
+    config['backup']['compression'] = input(f"Enter the compression method (e.g., lz4, zstd, default: {config['backup']['compression']}): ") or config['backup']['compression']
+
+    # Get prune settings
+    config['backup']['prune']['daily'] = int(input(f"Enter the number of daily archives to keep (default: {config['backup']['prune']['daily']}): ") or config['backup']['prune']['daily'])
+    config['backup']['prune']['weekly'] = int(input(f"Enter the number of weekly archives to keep (default: {config['backup']['prune']['weekly']}): ") or config['backup']['prune']['weekly'])
+    config['backup']['prune']['monthly'] = int(input(f"Enter the number of monthly archives to keep (default: {config['backup']['prune']['monthly']}): ") or config['backup']['prune']['monthly'])
+    config['backup']['prune']['yearly'] = int(input(f"Enter the number of yearly archives to keep (default: {config['backup']['prune']['yearly']}): ") or config['backup']['prune']['yearly'])
+
+    # Save the configuration to YAML
+    save_config(config)
+    print(f"Configuration file updated successfully at {CONFIG_PATH}")
+
+def load_config():
+    """Load configuration from YAML file."""
+    if os.path.exists(CONFIG_PATH):
+        try:
+            with open(CONFIG_PATH, 'r') as file:
+                config = yaml.safe_load(file)
+                logging.info("Configuration loaded successfully.")
+                return config
+        except yaml.YAMLError as e:
+            logging.error(f"Error loading configuration file: {e}")
+            return None
+    else:
+        logging.error(f"Configuration file not found.")
+        return None
+
+def save_config(config):
+    """Save the modified YAML config file."""
+    try:
+        with open(CONFIG_PATH, 'w') as file:
+            yaml.safe_dump(config, file)
+        logging.info(f"Configuration updated and saved to {CONFIG_PATH}.")
+    except OSError as e:
+        logging.error(f"Failed to write the configuration file: {e}")
+
+
 # Validate or create config file if necessary
 validate_or_create_config()
 
@@ -406,127 +529,6 @@ def borg_compact():
         
 # print("(5) config              (Get and set configuration values)")
 # Required configuration keys and their subkeys
-REQUIRED_KEYS = {
-    'borg': ['repo', 'passphrase', 'encryption', 'rsh'],
-    'backup': ['paths_to_backup', 'exclude_patterns', 'compression', 'prune']
-}
-
-def validate_yaml_config():
-    """Validate the YAML configuration file to ensure all required values are present."""
-    if not os.path.exists(CONFIG_PATH):
-        logging.error("Configuration file does not exist at the specified path.")
-        print(f"Error: Configuration file not found at {CONFIG_PATH}. Please create it first.")
-        return False
-    
-    try:
-        # Load the YAML file
-        with open(CONFIG_PATH, 'r') as file:
-            config = yaml.safe_load(file)
-
-        # Check for required keys and subkeys
-        missing_keys = []
-        for section, keys in REQUIRED_KEYS.items():
-            if section not in config:
-                missing_keys.append(section)
-            else:
-                for key in keys:
-                    if key not in config[section]:
-                        missing_keys.append(f"{section}.{key}")
-
-        # If there are missing keys, log and print the details
-        if missing_keys:
-            logging.error(f"Missing configuration values: {', '.join(missing_keys)}")
-            print(f"Error: The configuration is missing the following required values:\n - " +
-                  "\n - ".join(missing_keys))
-            return False
-
-        # All keys are accounted for
-        logging.info("Configuration file validated successfully, all values are accounted for.")
-        print("Configuration file is complete and validated.")
-        return True
-
-    except yaml.YAMLError as e:
-        logging.error(f"Error loading configuration file: {e}")
-        print(f"Error: Could not load configuration file due to a YAML error. {e}")
-        return False
-
-@error_handler
-def create_yaml_config():
-    """Create the YAML config file at {CONFIG_PATH} with default values.
-
-    This function allows the user to enter configuration settings for BorgBackup. If
-    the user does not provide an input, the default value is used.
-    """
-    # Hardcoded default values
-    hardcoded_defaults = {
-        'borg': {
-            'repo': "user@backup-hostname:/path/to/borgRepo",
-            'passphrase': "SecretPassword",
-            'encryption': "repokey",
-            'rsh': "ssh -i /path/to/id_ed25519" 
-        },
-        'backup': {
-            'paths_to_backup': ["/var", "/etc", "/home", "/root", "/opt", "/mnt", "/usr"],
-            'exclude_patterns': ["home/*/.cache/*", "var/tmp/*"],
-            'compression': "zstd"
-        }
-    }
-    
-    # Load existing config if it exists, else use hardcoded defaults
-    config = load_config() or hardcoded_defaults
-
-    # Prompt user for each setting, using the loaded value as the default
-    config['borg']['repo'] = input(f"Enter the Borg repository path (default: {config['borg']['repo']}): ") or config['borg']['repo']
-    config['borg']['passphrase'] = input(f"Enter the Borg passphrase (default: {config['borg']['passphrase']}): ") or config['borg']['passphrase']
-    config['borg']['encryption'] = input(f"Enter the encryption type (e.g., repokey, none, default: {config['borg']['encryption']}): ") or config['borg']['encryption']
-
-    # Prompt user for the SSH command if they want to set it
-    config['borg']['rsh'] = input(f"Enter the SSH command for Borg (default: {config['borg']['rsh']}): ") or config['borg']['rsh']
-    
-    # Get backup settings
-    paths_to_backup = input(f"Enter the directories to back up (comma-separated, default: {','.join(config['backup']['paths_to_backup'])}): ")
-    config['backup']['paths_to_backup'] = paths_to_backup.split(',') if paths_to_backup else config['backup']['paths_to_backup']
-
-    #Exclude patterns
-    exclude_patterns = input(f"Enter exclude patterns (comma-separated, default: {','.join(config['backup']['exclude_patterns'])}): ")
-    config['backup']['exclude_patterns'] = exclude_patterns.split(',') if exclude_patterns else config['backup']['exclude_patterns']
-
-    # Compression
-    config['backup']['compression'] = input(f"Enter the compression method (e.g., lz4, zstd, default: {config['backup']['compression']}): ") or config['backup']['compression']
-
-    # Get prune settings
-    config['backup']['prune']['daily'] = int(input(f"Enter the number of daily archives to keep (default: {config['backup']['prune']['daily']}): ") or config['backup']['prune']['daily'])
-    config['backup']['prune']['weekly'] = int(input(f"Enter the number of weekly archives to keep (default: {config['backup']['prune']['weekly']}): ") or config['backup']['prune']['weekly'])
-    config['backup']['prune']['monthly'] = int(input(f"Enter the number of monthly archives to keep (default: {config['backup']['prune']['monthly']}): ") or config['backup']['prune']['monthly'])
-    config['backup']['prune']['yearly'] = int(input(f"Enter the number of yearly archives to keep (default: {config['backup']['prune']['yearly']}): ") or config['backup']['prune']['yearly'])
-
-    # Save the configuration to YAML
-    save_config(config)
-    print(f"Configuration file updated successfully at {CONFIG_PATH}")
-
-def load_config():
-    """Load configuration from YAML file."""
-    if os.path.exists(CONFIG_PATH):
-        try:
-            with open(CONFIG_PATH, 'r') as file:
-                config = yaml.safe_load(file)
-                logging.info("Configuration loaded successfully.")
-                return config
-        except yaml.YAMLError as e:
-            logging.error(f"Error loading configuration file: {e}")
-            return None
-    else:
-        logging.error(f"Configuration file not found.")
-        return None
-
-def save_config(config):
-    """Save the modified YAML config file."""
-    try:
-        with open(CONFIG_PATH, 'w') as file:
-            yaml.safe_dump(config, file)
-        logging.info(f"Configuration updated and saved to {CONFIG_PATH}.")
-    except OSError as e:
-        logging.error(f"Failed to write the configuration file: {e}")
 
 # print("(6) create              (Create backup)")
 @error_handler
