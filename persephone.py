@@ -2148,7 +2148,7 @@ def main():
                 '6': lambda: create_backup(config),  # Pass config to create_backup
                 '7': debug_borg_submenu,
                 '8': delete_archive_borg_submenu,
-                '9': diff_archives,
+                '9': diff_borg_submenu,
                 '10': export_tar,
                 '11': extract_borg_submenu,
                 '12': info_borg_submenu,
