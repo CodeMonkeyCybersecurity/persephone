@@ -489,7 +489,7 @@ def save_config(config):
 
 # print("(6) create              (Create backup)")
 @error_handler
-def create_borg_repository(config):
+def create_backup(config):
     """Create a new Borg backup based on the configuration values."""
     while not validate_yaml_config():
         retry = input("Configuration is incomplete or invalid. Would you like to go back to configure it? (Y/N): ").strip().lower()
@@ -682,7 +682,7 @@ def main():
                 '3': check_repo,             # Verify repository
                 '4': borg_compact,           # Compact segment files
                 '5': create_yaml_config,     # Config setup
-                '6': create_borg_backup,     # Create backup
+                '6': create_backup,          # Create backup
                 '7': debug_command,          # Debugging
                 '8': delete_archive,         # Delete archive
                 '9': diff_archives,          # Find differences
