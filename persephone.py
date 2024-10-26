@@ -1034,10 +1034,6 @@ def run_extract_command(repo_path, archive, paths, progress, dry_run, numeric_ow
     except subprocess.CalledProcessError as e:
         logging.error(f"Borg extract command failed: {e.stderr}")
         print(f"Error: {e.stderr}")
-
-# Run the submenu directly if the script is called
-if __name__ == "__main__":
-    extract_borg_submenu()
     
 # print("(12) info               (Show repository or archive information)")
 @error_handler
@@ -1129,10 +1125,6 @@ def run_info_command(repo_path, json_flag=False, first_flag=False, last_flag=Fal
         logging.error(f"Borg info command failed: {e.stderr}")
         print(f"Error: {e.stderr}")
 
-# Run the submenu directly if the script is called
-if __name__ == "__main__":
-    info_borg_submenu()
-
 # print("(13) init               (Initialize empty repository)")
 @error_handler
 def init_borg_submenu():
@@ -1198,10 +1190,6 @@ def run_init_command(repo_path, encryption, rsh_command, make_parent_dirs, appen
     except subprocess.CalledProcessError as e:
         logging.error(f"Borg init command failed: {e.stderr}")
         print(f"Error: {e.stderr}")
-
-# Run the submenu directly if the script is called
-if __name__ == "__main__":
-    init_borg_submenu()
 
 # print("(14) key                (Manage repository key)")
 @error_handler
@@ -1308,10 +1296,6 @@ def change_key_passphrase(repo_path, passphrase):
     except subprocess.CalledProcessError as e:
         logging.error(f"Borg key change-passphrase command failed: {e.stderr}")
         print(f"Error: {e.stderr}")
-
-# Run the submenu directly if the script is called
-if __name__ == "__main__":
-    key_borg_submenu()
     
 # print("(15) list               (List archive or repository contents)")
 @error_handler
@@ -1423,10 +1407,6 @@ def list_archive_contents(repo_path, passphrase, format_option, json_option, glo
         logging.error(f"Borg list archive command failed: {e.stderr}")
         print(f"Error: {e.stderr}")
 
-# Run the submenu directly if the script is called
-if __name__ == "__main__":
-    list_borg_submenu()
-
 # print("(16) mount              (Mount repository)")
 @error_handler
 def mount_borg_submenu():
@@ -1534,10 +1514,6 @@ def mount_specific_archive(repo_path, passphrase, mount_point):
         logging.error(f"Borg mount archive command failed: {e.stderr}")
         print(f"Error: {e.stderr}")
 
-# Run the submenu directly if the script is called
-if __name__ == "__main__":
-    mount_borg_submenu()
-
 # print("(17) prune              (Prune archives)")
 @error_handler
 # Borg prune submenu
@@ -1626,11 +1602,6 @@ def run_prune(repo_path, keep_daily, keep_weekly, keep_monthly, keep_yearly, pre
     except subprocess.CalledProcessError as e:
         logging.error(f"Borg prune command failed: {e.stderr}")
         print(f"Error: {e.stderr}")
-
-# Run the submenu directly if the script is called
-if __name__ == "__main__":
-    prune_borg_submenu()
-
 
 # print("(18) recreate           (Re-create archives)")
 @error_handler
@@ -1727,11 +1698,6 @@ def select_archive(archives):
         print("Invalid choice. Please try again.")
         return None
 
-# Run the submenu directly if the script is called
-if __name__ == "__main__":
-    recreate_borg_submenu()
-
-
 # print("(19) rename             (Rename archive)")
 @error_handler
 def rename_borg_submenu():
@@ -1814,11 +1780,6 @@ def select_archive(position, archives):
         print("Invalid choice. Please try again.")
         return None
 
-# Run the submenu directly if the script is called
-if __name__ == "__main__":
-    rename_borg_submenu()
-
-
 # print("(20) serve              (Start repository server process)")
 @error_handler
 def serve_borg_submenu():
@@ -1892,10 +1853,6 @@ def save_serve_defaults(repo_path, passphrase, rsh):
     else:
         print("Settings not saved.")
 
-# Run the submenu directly if the script is called
-if __name__ == "__main__":
-    serve_borg_submenu()
-
 # print("(21) umount             (Umount repository)")
 @error_handler
 # Unmount submenu
@@ -1961,11 +1918,6 @@ def save_umount_defaults(repo_path, mount_point):
     else:
         print("Settings not saved.")
 
-# Run the submenu directly if the script is called
-if __name__ == "__main__":
-    unmount_borg_submenu()
-
-
 # print("(22) upgrade            (Upgrade repository format)")
 @error_handler
 def upgrade_borg_repo(repo_path, encryption):
@@ -2007,10 +1959,6 @@ def save_upgrade_defaults(repo_path, encryption):
         print("Settings saved as defaults.")
     else:
         print("Settings not saved.")
-
-# Run the submenu directly if the script is called
-if __name__ == "__main__":
-    upgrade_borg_submenu()
 
 # print("(23) with-lock          (Run user command with lock held)")
 @error_handler
@@ -2085,11 +2033,6 @@ def save_with_lock_defaults(repo_path, rsh):
         print("Settings saved as defaults.")
     else:
         print("Settings not saved.")
-
-# Run the submenu directly if the script is called
-if __name__ == "__main__":
-    with_lock_borg_submenu()
-
 
 # print("(24) import-tar         (Create a backup archive from a tarball)")
 @error_handler
@@ -2170,11 +2113,6 @@ def save_import_tar_defaults(repo_path, archive_name, rsh):
         print("Settings saved as defaults.")
     else:
         print("Settings not saved.")
-
-# Run the submenu directly if the script is called
-if __name__ == "__main__":
-    import_tar_borg_submenu()
-
 
 # Handle submenu option
 @error_handler
