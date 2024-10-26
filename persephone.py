@@ -727,6 +727,115 @@ if __name__ == "__main__":
 
 # print("(9) diff                (Find differences in archive contents)")
 @error_handler
+def diff_borg_submenu():
+    """Present a submenu for Borg diff operations."""
+    config = load_config()  # Load configuration values
+    if not config:
+        print("Configuration file not found. Please ensure the configuration file exists and try again.")
+        return
+
+    repo_path = config.get('borg', {}).get('repo', "<no default set>")
+    archives = config.get('backup', {}).get('archives', [])
+
+    while True:
+        print("\nBorg Diff Submenu")
+        print("This command compares differences between two archives.")
+        print("Available options:")
+        print("(1) Compare two archives")
+        print("(E) Exit to Main Menu")
+
+        choice = input("Select an option: ").upper()
+
+        if choice == '1':
+            compare_archives(repo_path, archives)
+        elif choice == 'E':
+            break
+        else:
+            print("Invalid option. Please try again.")
+
+def compare_archives(repo_path, archives):
+    """Prompt user to select or enter archives to compare."""
+    print(f"\nRepository Path: {repo_path}")
+    print("Available Archives:")
+    for i, archive in enumerate(archives, start=1):
+        print(f"({i}) {archive}")
+    print("(C) Cancel and Return to Previous Menu")
+
+    # Prompt for the first archive
+    archive1 = select_archive("first", archives)
+    if not archive1:
+        return
+
+    # Prompt for the second archive
+    archive2 = select_archive("second", archives, exclude=archive1)
+    if not archive2:
+        return
+
+    # Optional flags
+    sort_flag = input("Sort output by path with '--sort'? (Y/N): ").upper()
+    numeric_owner_flag = input("Display numeric owner info with '--numeric-owner'? (Y/N): ").upper()
+
+    # Convert user responses to actual flags
+    sort_option = '--sort' if sort_flag == 'Y' else ''
+    numeric_owner_option = '--numeric-owner' if numeric_owner_flag == 'Y' else ''
+
+    run_diff_command(repo_path, archive1, archive2, sort_option, numeric_owner_option)
+
+def select_archive(position, archives, exclude=None):
+    """Select an archive for comparison."""
+    while True:
+        print(f"\nSelect the {position} archive to compare:")
+        for i, archive in enumerate(archives, start=1):
+            if archive != exclude:
+                print(f"({i}) {archive}")
+        print("(C) Cancel and Return to Previous Menu")
+
+        choice = input("Choose an archive by number or 'C' to cancel: ").upper()
+        if choice == 'C':
+            return None
+        elif choice.isdigit() and 1 <= int(choice) <= len(archives):
+            selected_archive = archives[int(choice) - 1]
+            if selected_archive == exclude:
+                print("You cannot select the same archive twice. Please select a different one.")
+            else:
+                return selected_archive
+        else:
+            print("Invalid choice. Please try again.")
+
+def run_diff_command(repo_path, archive1, archive2, sort_option='', numeric_owner_option=''):
+    """Run Borg diff command with specified archives and options."""
+    cmd = ['borg', 'diff', repo_path, f"::{archive1}", f"::{archive2}"]
+    if sort_option:
+        cmd.append(sort_option)
+    if numeric_owner_option:
+        cmd.append(numeric_owner_option)
+
+    try:
+        result = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        print(f"Comparison results:\n{result.stdout}")
+        logging.info(f"Borg diff command successful: {result.stdout}")
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Borg diff command failed: {e.stderr}")
+        print(f"Error: {e.stderr}")
+
+# Integrate diff submenu into the main menu
+def main():
+    while True:
+        print("\nMain Menu")
+        print("(D) Diff Submenu")
+        print("(E) Exit Program")
+        
+        choice = input("Select an option: ").upper()
+        if choice == 'D':
+            diff_borg_submenu()
+        elif choice == 'E':
+            print("Exiting program.")
+            break
+        else:
+            print("Invalid option. Please try again.")
+
+if __name__ == "__main__":
+    main()
 
 # print("(10) export-tar         (Create tarball from archive)")
 @error_handler
