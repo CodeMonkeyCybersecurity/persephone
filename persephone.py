@@ -52,7 +52,7 @@ def display_menu():
     print("To learn more about us, visit cybermonkey.net.au")
     print("Please select an option:")
     print("(M) Show main (M)enu")
-    print("(H) Need to ask for (H)elp? Good on you"))
+    print("(H) Need to ask for (H)elp? Good on you")
     print("(N) Run backup (N)ow")
     print("(E) (E)xit")
     print("(A) Automate backup     (Add backup config to crontab)")
