@@ -687,7 +687,7 @@ def debug_corpora():
 # Delete submenu
 # print("(8) delete              (Delete archive)")
 @error_handler
-def delete_borg_submenu():
+def delete_archive_borg_submenu():
     """Present a submenu for Borg delete operations."""
     config = load_config()  # Load configuration values
     if not config:
@@ -698,7 +698,7 @@ def delete_borg_submenu():
     archives = config.get('backup', {}).get('archives', [])
 
     while True:
-        print("\nBorg Delete Submenu")
+        print("\nThe Delete Borg Archives/Repository Submenu")
         print("(1) Delete Entire Repository")
         print("(2) Delete Specific Archive")
         print("(E) Exit to Main Menu")
@@ -766,7 +766,7 @@ def run_delete_command(repo_path, archive=None, force_flag='', stats_flag=''):
         print(f"Error: {e.stderr}")
 
 # Integrate delete submenu into the main menu
-def main():
+def integrate_delete_into_main():
     while True:
         print("\nMain Menu")
         print("(D) Delete Submenu")
@@ -782,7 +782,7 @@ def main():
             print("Invalid option. Please try again.")
 
 if __name__ == "__main__":
-    main()
+    integrate_delete_into_main()  # Updated call to match the function name
 
 # print("(9) diff                (Find differences in archive contents)")
 @error_handler
@@ -878,7 +878,7 @@ def run_diff_command(repo_path, archive1, archive2, sort_option='', numeric_owne
         print(f"Error: {e.stderr}")
 
 # Integrate diff submenu into the main menu
-def main():
+def integrate_diff_into_main():
     while True:
         print("\nMain Menu")
         print("(D) Diff Submenu")
@@ -894,7 +894,7 @@ def main():
             print("Invalid option. Please try again.")
 
 if __name__ == "__main__":
-    main()
+    integrate_diff_into_main()
 
 # print("(10) export-tar         (Create tarball from archive)")
 @error_handler
@@ -982,7 +982,7 @@ def run_export_tar_command(repo_path, archive, tarball_name, tar_filter_option, 
         print(f"Error: {e.stderr}")
 
 # Integrate export-tar submenu into the main menu
-def main():
+def integrate_export_tar_into_main():
     while True:
         print("\nMain Menu")
         print("(T) Export-Tar Submenu")
@@ -998,7 +998,7 @@ def main():
             print("Invalid option. Please try again.")
 
 if __name__ == "__main__":
-    main()
+    integrate_export_tar_into_main()
 
 # print("(11) extract            (Extract archive contents)")
 @error_handler
@@ -2303,7 +2303,7 @@ def main():
                 '5': create_yaml_config,       # Config setup
                 '6': create_backup,            # Create backup
                 '7': debug_borg_submenu,       # Debugging
-                '8': delete_borg_submenu,      # Delete archive
+                '8': delete_archive_borg_submenu,      # Delete archive
                 '9': diff_archives,            # Find differences
                 '10': export_tar,              # Export tarball
                 '11': extract_borg_submenu,    # Extract archive
