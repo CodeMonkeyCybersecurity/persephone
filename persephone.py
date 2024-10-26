@@ -138,7 +138,7 @@ def create_yaml_config():
         'backup': {
             'paths_to_backup': ["/var", "/etc", "/home", "/root", "/opt", "/mnt", "/usr"],
             'exclude_patterns': ["home/*/.cache/*", "var/tmp/*"],
-            'compression': "zstd"
+            'compression': "zstd",
             'prune': {  # Default prune values
                 'daily': 7,
                 'weekly': 4,
@@ -146,7 +146,7 @@ def create_yaml_config():
                 'yearly': 1
         }
     }
-    
+}
     # Load existing config if it exists, else use hardcoded defaults
     config = load_config() or hardcoded_defaults
 
