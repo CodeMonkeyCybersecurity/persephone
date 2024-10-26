@@ -6,21 +6,36 @@ import logging
 from datetime import datetime
 import socket  # Used to get the hostname
 
-# Fle configuration path for backup configs
+# Fle configuration path for backup configs and logging
 CONFIG_PATH = "/etc/CodeMonkeyCyber/Persephone/borgConfig.yaml"
+LOG_PATH = "/var/log/persephone.log"
 
-# Set up logging to output to both a file and the console
-file_handler = logging.FileHandler("/var/log/persephone.log")
-file_handler.setLevel(logging.DEBUG)  # Log all levels to the log file
+def check_root_permissions():
+    """Check if the script is being run with root privileges."""
+    if os.geteuid() != 0:
+        print("This script requires root privileges to run.")
+        print("Please run as root or use sudo.")
+        sys.exit(1)
+        
+def setup_logging():
+    """Set up logging for the application."""
+    file_handler = logging.FileHandler(LOG_PATH)
+    file_handler.setLevel(logging.DEBUG)
+    
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.ERROR)
+    
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        handlers=[file_handler, console_handler]
+    )
 
-console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.ERROR)  # Only log errors or higher to the console
+# Call permission check at the start
+check_root_permissions()
 
-logging.basicConfig(
-    level=logging.DEBUG,  # Overall log level
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[file_handler, console_handler]
-)
+# Initialize logging after permission check
+setup_logging()
 
 # Error handling function 
 def error_handler(func):
