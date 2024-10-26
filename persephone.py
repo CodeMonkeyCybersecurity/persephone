@@ -358,7 +358,8 @@ def create_yaml_config():
         'borg': {
             'repo': "user@backup-hostname:/path/to/borgRepo",
             'passphrase': "SecretPassword",
-            'encryption': "repokey"
+            'encryption': "repokey",
+            'rsh': "ssh -i /path/to/id_ed25519" 
         },
         'backup': {
             'paths_to_backup': ["/var", "/etc", "/home", "/root", "/opt", "/mnt", "/usr"],
@@ -375,6 +376,9 @@ def create_yaml_config():
     config['borg']['passphrase'] = input(f"Enter the Borg passphrase (default: {config['borg']['passphrase']}): ") or config['borg']['passphrase']
     config['borg']['encryption'] = input(f"Enter the encryption type (e.g., repokey, none, default: {config['borg']['encryption']}): ") or config['borg']['encryption']
 
+    # Prompt user for the SSH command if they want to set it
+    config['borg']['rsh'] = input(f"Enter the SSH command for Borg (default: {config['borg']['rsh']}): ") or config['borg']['rsh']
+    
     # Get backup settings
     paths_to_backup = input(f"Enter the directories to back up (comma-separated, default: {','.join(config['backup']['paths_to_backup'])}): ")
     config['backup']['paths_to_backup'] = paths_to_backup.split(',') if paths_to_backup else config['backup']['paths_to_backup']
