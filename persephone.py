@@ -657,7 +657,7 @@ def main():
                 'M': display_menu,
                 'H': show_borg_help,
                 'N': run_borg_backup,
-                'A': automate_backup_crontab,
+                'A': add_borg_to_crontab,
                 'E': exit_program,
                 '1': benchmark_command,      # Example function to run the benchmark
                 '2': break_lock_command,     # Example function to break repository locks
