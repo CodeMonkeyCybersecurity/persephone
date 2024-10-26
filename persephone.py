@@ -1202,41 +1202,976 @@ if __name__ == "__main__":
 
 # print("(14) key                (Manage repository key)")
 @error_handler
+def key_borg_submenu():
+    """Submenu for Borg key management command with configurable options."""
+    config = load_config()
+    if not config:
+        print("Configuration file not found. Please ensure it exists.")
+        return
 
+    # Load values from config.yaml with defaults
+    repo_path = config['borg'].get('repo', "<no default set>")
+    passphrase = config['borg'].get('passphrase', "SecretPassword")
+
+    while True:
+        print("\nBorg Key Management Submenu")
+        print("Available options:")
+        print("(1) Export Key")
+        print("(2) Import Key")
+        print("(3) Change Key Passphrase")
+        print("(E) Exit to Main Menu")
+
+        choice = input("Select an option: ").upper()
+        if choice == '1':
+            export_key(repo_path)
+        elif choice == '2':
+            import_key(repo_path)
+        elif choice == '3':
+            change_key_passphrase(repo_path, passphrase)
+        elif choice == 'E':
+            break
+        else:
+            print("Invalid option. Please try again.")
+
+# Define the key management functions
+def export_key(repo_path):
+    """Export the repository key."""
+    if repo_path == "<no default set>":
+        print("Repository path is not set in the configuration.")
+        return
+
+    export_path = input("Enter the path to save the exported key (e.g., /path/to/key.borgkey): ")
+
+    try:
+        cmd = ['borg', 'key', 'export', repo_path, export_path]
+        result = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        print(f"Key exported successfully:\n{result.stdout}")
+        logging.info(f"Borg key export command successful: {result.stdout}")
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Borg key export command failed: {e.stderr}")
+        print(f"Error: {e.stderr}")
+
+def import_key(repo_path):
+    """Import a repository key."""
+    if repo_path == "<no default set>":
+        print("Repository path is not set in the configuration.")
+        return
+
+    key_path = input("Enter the path of the key file to import (e.g., /path/to/key.borgkey): ")
+
+    try:
+        cmd = ['borg', 'key', 'import', repo_path, key_path]
+        result = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        print(f"Key imported successfully:\n{result.stdout}")
+        logging.info(f"Borg key import command successful: {result.stdout}")
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Borg key import command failed: {e.stderr}")
+        print(f"Error: {e.stderr}")
+
+def change_key_passphrase(repo_path, passphrase):
+    """Change the passphrase for the repository key."""
+    if repo_path == "<no default set>":
+        print("Repository path is not set in the configuration.")
+        return
+
+    # Prompt for new passphrase and confirmation
+    new_passphrase = input("Enter the new passphrase for the repository key: ")
+    confirm_passphrase = input("Confirm the new passphrase: ")
+
+    if new_passphrase != confirm_passphrase:
+        print("Passphrases do not match. Try again.")
+        return
+
+    # Set the environment for Borg with the old passphrase
+    env = os.environ.copy()
+    env['BORG_PASSPHRASE'] = passphrase
+
+    try:
+        cmd = ['borg', 'key', 'change-passphrase', repo_path]
+        result = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env)
+        print(f"Passphrase changed successfully:\n{result.stdout}")
+        logging.info(f"Borg key change-passphrase command successful: {result.stdout}")
+
+        # Confirm user wants to save the new passphrase in config.yaml
+        save_passphrase = input("Would you like to save this new passphrase in the config for future use? (Y/N): ").upper()
+        if save_passphrase == 'Y':
+            config = load_config()
+            if config:
+                config['borg']['passphrase'] = new_passphrase
+                save_config(config)
+                print("New passphrase saved successfully.")
+            else:
+                print("Failed to load configuration to save the passphrase.")
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Borg key change-passphrase command failed: {e.stderr}")
+        print(f"Error: {e.stderr}")
+
+# Run the submenu directly if the script is called
+if __name__ == "__main__":
+    key_borg_submenu()
+    
 # print("(15) list               (List archive or repository contents)")
 @error_handler
+def list_borg_submenu():
+    """Submenu for Borg list command with configurable options."""
+    config = load_config()
+    if not config:
+        print("Configuration file not found. Please ensure it exists.")
+        return
+
+    # Load values from config.yaml with defaults
+    repo_path = config['borg'].get('repo', "<no default set>")
+    passphrase = config['borg'].get('passphrase', "SecretPassword")
+
+    # Optional flags and values
+    format_option = "--format"
+    json_option = "--json"
+    glob_archives_option = "--glob-archives"
+
+    while True:
+        print("\nBorg List Submenu")
+        print("Options for listing archives or their contents:")
+        print("(1) List all archives in repository")
+        print("(2) List contents of a specific archive")
+        print("(E) Exit to Main Menu")
+
+        choice = input("Select an option: ").upper()
+        if choice == '1':
+            list_repository_archives(repo_path, passphrase, format_option, json_option)
+        elif choice == '2':
+            list_archive_contents(repo_path, passphrase, format_option, json_option, glob_archives_option)
+        elif choice == 'E':
+            break
+        else:
+            print("Invalid option. Please try again.")
+
+# Function to list all archives in the repository
+def list_repository_archives(repo_path, passphrase, format_option, json_option):
+    if repo_path == "<no default set>":
+        print("Repository path is not set in the configuration.")
+        return
+
+    # Set up environment for Borg with passphrase
+    env = os.environ.copy()
+    env['BORG_PASSPHRASE'] = passphrase
+
+    # Optional format and JSON flags
+    use_format = input("Use custom format for output with '--format'? (Y/N): ").upper() == 'Y'
+    use_json = input("Display output in JSON with '--json'? (Y/N): ").upper() == 'Y'
+
+    cmd = ['borg', 'list', repo_path]
+    if use_format:
+        format_value = input("Enter the format string (e.g., '{archive:<36} {time}'): ")
+        cmd.extend([format_option, format_value])
+    if use_json:
+        cmd.append(json_option)
+
+    try:
+        result = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env)
+        print(f"Repository listing:\n{result.stdout}")
+        logging.info(f"Borg list repository command successful: {result.stdout}")
+
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Borg list repository command failed: {e.stderr}")
+        print(f"Error: {e.stderr}")
+
+def list_archive_contents(repo_path, passphrase, format_option, json_option, glob_archives_option):
+    if repo_path == "<no default set>":
+        print("Repository path is not set in the configuration.")
+        return
+
+    archive_name = input("Enter the archive name to list contents: ")
+
+    # Set up environment for Borg with passphrase
+    env = os.environ.copy()
+    env['BORG_PASSPHRASE'] = passphrase
+
+    # Optional flags
+    use_format = input("Use custom format for output with '--format'? (Y/N): ").upper() == 'Y'
+    use_json = input("Display output in JSON with '--json'? (Y/N): ").upper() == 'Y'
+    use_glob = input("Filter archives with '--glob-archives'? (Y/N): ").upper() == 'Y'
+
+    cmd = ['borg', 'list', f"{repo_path}::{archive_name}"]
+    if use_format:
+        format_value = input("Enter the format string (e.g., '{path} {size} {mtime}'): ")
+        cmd.extend([format_option, format_value])
+    if use_json:
+        cmd.append(json_option)
+    if use_glob:
+        glob_value = input("Enter the glob pattern (e.g., '*2023*'): ")
+        cmd.extend([glob_archives_option, glob_value])
+
+    try:
+        result = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env)
+        print(f"Archive contents listing:\n{result.stdout}")
+        logging.info(f"Borg list archive command successful: {result.stdout}")
+
+        # Ask to store archive_name as default in config.yaml
+        save_archive = input("Would you like to save this archive name in the config as default? (Y/N): ").upper()
+        if save_archive == 'Y':
+            config = load_config()
+            if config:
+                config.setdefault('backup', {})['default_archive'] = archive_name
+                save_config(config)
+                print("Default archive name saved successfully.")
+            else:
+                print("Failed to load configuration for saving the archive name.")
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Borg list archive command failed: {e.stderr}")
+        print(f"Error: {e.stderr}")
+
+# Run the submenu directly if the script is called
+if __name__ == "__main__":
+    list_borg_submenu()
 
 # print("(16) mount              (Mount repository)")
 @error_handler
+def mount_borg_submenu():
+    """Submenu for Borg mount command with configurable options."""
+    config = load_config()
+    if not config:
+        print("Configuration file not found. Please ensure it exists.")
+        return
+
+    # Load values from config.yaml with defaults
+    repo_path = config['borg'].get('repo', "<no default set>")
+    passphrase = config['borg'].get('passphrase', "SecretPassword")
+    mount_point = config['borg'].get('mount_point', "/mnt/borg_mount")
+
+    while True:
+        print("\nBorg Mount Submenu")
+        print("Options for mounting a repository or archive:")
+        print("(1) Mount entire repository")
+        print("(2) Mount specific archive")
+        print("(E) Exit to Main Menu")
+
+        choice = input("Select an option: ").upper()
+        if choice == '1':
+            mount_repository(repo_path, passphrase, mount_point)
+        elif choice == '2':
+            mount_specific_archive(repo_path, passphrase, mount_point)
+        elif choice == 'E':
+            break
+        else:
+            print("Invalid option. Please try again.")
+
+# Function to mount the entire repository
+def mount_repository(repo_path, passphrase, mount_point):
+    if repo_path == "<no default set>":
+        print("Repository path is not set in the configuration.")
+        return
+
+    # Set up environment for Borg with passphrase
+    env = os.environ.copy()
+    env['BORG_PASSPHRASE'] = passphrase
+
+    # Prompt for mount point
+    user_mount_point = input(f"Enter mount point (default: {mount_point}): ") or mount_point
+    cmd = ['borg', 'mount', repo_path, user_mount_point]
+
+    try:
+        result = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env)
+        print(f"Repository mounted at {user_mount_point}:\n{result.stdout}")
+        logging.info(f"Borg mount repository command successful: {result.stdout}")
+
+        # Ask to store mount_point as default in config.yaml
+        save_mount_point = input("Would you like to save this mount point in the config as default? (Y/N): ").upper()
+        if save_mount_point == 'Y':
+            config = load_config()
+            if config:
+                config['borg']['mount_point'] = user_mount_point
+                save_config(config)
+                print("Default mount point saved successfully.")
+            else:
+                print("Failed to load configuration for saving the mount point.")
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Borg mount repository command failed: {e.stderr}")
+        print(f"Error: {e.stderr}")
+
+# Function to mount a specific archive
+def mount_specific_archive(repo_path, passphrase, mount_point):
+    if repo_path == "<no default set>":
+        print("Repository path is not set in the configuration.")
+        return
+
+    archive_name = input("Enter the archive name to mount: ")
+
+    # Set up environment for Borg with passphrase
+    env = os.environ.copy()
+    env['BORG_PASSPHRASE'] = passphrase
+
+    # Prompt for mount point
+    user_mount_point = input(f"Enter mount point (default: {mount_point}): ") or mount_point
+    cmd = ['borg', 'mount', f"{repo_path}::{archive_name}", user_mount_point]
+
+    try:
+        result = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env)
+        print(f"Archive {archive_name} mounted at {user_mount_point}:\n{result.stdout}")
+        logging.info(f"Borg mount archive command successful: {result.stdout}")
+
+        # Ask to store archive_name and mount_point as defaults in config.yaml
+        save_archive = input("Would you like to save this archive name as a default in the config? (Y/N): ").upper()
+        save_mount_point = input("Would you like to save this mount point in the config as default? (Y/N): ").upper()
+
+        config = load_config()
+        if config:
+            if save_archive == 'Y':
+                config.setdefault('backup', {})['default_archive'] = archive_name
+            if save_mount_point == 'Y':
+                config['borg']['mount_point'] = user_mount_point
+            if save_archive == 'Y' or save_mount_point == 'Y':
+                save_config(config)
+                print("Default archive name and/or mount point saved successfully.")
+            else:
+                print("No changes saved to configuration.")
+        else:
+            print("Failed to load configuration for saving values.")
+
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Borg mount archive command failed: {e.stderr}")
+        print(f"Error: {e.stderr}")
+
+# Run the submenu directly if the script is called
+if __name__ == "__main__":
+    mount_borg_submenu()
 
 # print("(17) prune              (Prune archives)")
 @error_handler
+# Borg prune submenu
+def prune_borg_submenu():
+    """Submenu for Borg prune command with configurable options."""
+    config = load_config()
+    if not config:
+        print("Configuration file not found. Please ensure it exists.")
+        return
+
+    # Load prune defaults from config.yaml
+    repo_path = config['borg'].get('repo', "<no default set>")
+    keep_daily = config['backup']['prune'].get('daily', 7)
+    keep_weekly = config['backup']['prune'].get('weekly', 4)
+    keep_monthly = config['backup']['prune'].get('monthly', 6)
+    keep_yearly = config['backup']['prune'].get('yearly', 1)
+    prefix = config['backup']['prune'].get('prefix', '')
+    glob_archives = config['backup']['prune'].get('glob_archives', '')
+    show_stats = config['backup']['prune'].get('show_stats', True)
+
+    while True:
+        print("\nBorg Prune Submenu")
+        print("Options for pruning old archives:")
+        print("(1) Run prune with current settings")
+        print("(E) Exit to Main Menu")
+
+        choice = input("Select an option: ").upper()
+        if choice == '1':
+            run_prune(repo_path, keep_daily, keep_weekly, keep_monthly, keep_yearly, prefix, glob_archives, show_stats)
+        elif choice == 'E':
+            break
+        else:
+            print("Invalid option. Please try again.")
+
+# Function to run the prune command
+def run_prune(repo_path, keep_daily, keep_weekly, keep_monthly, keep_yearly, prefix, glob_archives, show_stats):
+    if repo_path == "<no default set>":
+        print("Repository path is not set in the configuration.")
+        return
+
+    # Prompt user for retention settings with defaults
+    keep_daily = int(input(f"Enter number of daily archives to keep (default: {keep_daily}): ") or keep_daily)
+    keep_weekly = int(input(f"Enter number of weekly archives to keep (default: {keep_weekly}): ") or keep_weekly)
+    keep_monthly = int(input(f"Enter number of monthly archives to keep (default: {keep_monthly}): ") or keep_monthly)
+    keep_yearly = int(input(f"Enter number of yearly archives to keep (default: {keep_yearly}): ") or keep_yearly)
+    prefix = input(f"Enter archive prefix (default: {prefix}): ") or prefix
+    glob_archives = input(f"Enter glob pattern for archive names (default: {glob_archives}): ") or glob_archives
+    show_stats = input(f"Show statistics? (Y/N, default: {'Y' if show_stats else 'N'}): ").upper() == 'Y'
+
+    # Construct prune command
+    cmd = ['borg', 'prune', repo_path,
+           '--keep-daily', str(keep_daily),
+           '--keep-weekly', str(keep_weekly),
+           '--keep-monthly', str(keep_monthly),
+           '--keep-yearly', str(keep_yearly)]
+    if prefix:
+        cmd.extend(['--prefix', prefix])
+    if glob_archives:
+        cmd.extend(['--glob-archives', glob_archives])
+    if show_stats:
+        cmd.append('--stats')
+
+    try:
+        result = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        print(f"Prune operation completed:\n{result.stdout}")
+        logging.info(f"Borg prune command successful: {result.stdout}")
+
+        # Save settings as new defaults if user consents
+        config = load_config()
+        if config:
+            save_prune_defaults = input("Would you like to save these retention settings as defaults? (Y/N): ").upper()
+            if save_prune_defaults == 'Y':
+                config['backup']['prune'] = {
+                    'daily': keep_daily,
+                    'weekly': keep_weekly,
+                    'monthly': keep_monthly,
+                    'yearly': keep_yearly,
+                    'prefix': prefix,
+                    'glob_archives': glob_archives,
+                    'show_stats': show_stats
+                }
+                save_config(config)
+                print("Prune settings saved successfully.")
+            else:
+                print("Prune settings were not saved.")
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Borg prune command failed: {e.stderr}")
+        print(f"Error: {e.stderr}")
+
+# Run the submenu directly if the script is called
+if __name__ == "__main__":
+    prune_borg_submenu()
+
 
 # print("(18) recreate           (Re-create archives)")
 @error_handler
+def recreate_borg_submenu():
+    """Submenu for Borg recreate command with configurable options."""
+    config = load_config()
+    if not config:
+        print("Configuration file not found. Please ensure it exists.")
+        return
+
+    # Load defaults from config.yaml
+    repo_path = config['borg'].get('repo', "<no default set>")
+    archives = config['backup'].get('archives', [])
+    compression = config['backup'].get('compression', 'zstd')
+    exclude_patterns = config['backup'].get('exclude_patterns', [])
+    chunker_params = config['backup'].get('chunker_params', '')
+    show_stats = config['backup'].get('show_stats', True)
+
+    while True:
+        print("\nBorg Recreate Submenu")
+        print("Options for recreating archives:")
+        print("(1) Run recreate with current settings")
+        print("(E) Exit to Main Menu")
+
+        choice = input("Select an option: ").upper()
+        if choice == '1':
+            run_recreate(repo_path, archives, compression, exclude_patterns, chunker_params, show_stats)
+        elif choice == 'E':
+            break
+        else:
+            print("Invalid option. Please try again.")
+
+# Function to run the recreate command
+def run_recreate(repo_path, archives, compression, exclude_patterns, chunker_params, show_stats):
+    if repo_path == "<no default set>":
+        print("Repository path is not set in the configuration.")
+        return
+
+    # Prompt user for archive and recreate options
+    archive_name = select_archive(archives)
+    if not archive_name:
+        return
+
+    compression = input(f"Enter compression method (default: {compression}): ") or compression
+    exclude_patterns = input(f"Enter patterns to exclude (comma-separated, default: {','.join(exclude_patterns)}): ").split(',') or exclude_patterns
+    chunker_params = input(f"Enter chunker params (default: {chunker_params}): ") or chunker_params
+    show_stats = input(f"Show statistics? (Y/N, default: {'Y' if show_stats else 'N'}): ").upper() == 'Y'
+
+    # Construct recreate command
+    cmd = ['borg', 'recreate', repo_path + "::" + archive_name,
+           '--compression', compression]
+    for pattern in exclude_patterns:
+        cmd.extend(['--exclude', pattern])
+    if chunker_params:
+        cmd.extend(['--chunker-params', chunker_params])
+    if show_stats:
+        cmd.append('--stats')
+
+    try:
+        result = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        print(f"Recreate operation completed:\n{result.stdout}")
+        logging.info(f"Borg recreate command successful: {result.stdout}")
+
+        # Save settings as new defaults if user consents
+        config = load_config()
+        if config:
+            save_recreate_defaults = input("Would you like to save these settings as defaults? (Y/N): ").upper()
+            if save_recreate_defaults == 'Y':
+                config['backup']['compression'] = compression
+                config['backup']['exclude_patterns'] = exclude_patterns
+                config['backup']['chunker_params'] = chunker_params
+                config['backup']['show_stats'] = show_stats
+                save_config(config)
+                print("Recreate settings saved successfully.")
+            else:
+                print("Recreate settings were not saved.")
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Borg recreate command failed: {e.stderr}")
+        print(f"Error: {e.stderr}")
+
+def select_archive(archives):
+    """Select an archive to recreate."""
+    print("\nAvailable Archives:")
+    for i, archive in enumerate(archives, start=1):
+        print(f"({i}) {archive}")
+    print("(C) Cancel and Return to Previous Menu")
+
+    choice = input("Choose an archive by number or 'C' to cancel: ").upper()
+    if choice == 'C':
+        return None
+    elif choice.isdigit() and 1 <= int(choice) <= len(archives):
+        return archives[int(choice) - 1]
+    else:
+        print("Invalid choice. Please try again.")
+        return None
+
+# Run the submenu directly if the script is called
+if __name__ == "__main__":
+    recreate_borg_submenu()
+
 
 # print("(19) rename             (Rename archive)")
 @error_handler
+def rename_borg_submenu():
+    """Submenu for Borg rename command with configurable options."""
+    config = load_config()
+    if not config:
+        print("Configuration file not found. Please ensure it exists.")
+        return
+
+    # Load defaults from config.yaml
+    repo_path = config['borg'].get('repo', "<no default set>")
+    archives = config['backup'].get('archives', [])
+
+    while True:
+        print("\nBorg Rename Submenu")
+        print("Options for renaming an archive:")
+        print("(1) Rename an archive")
+        print("(E) Exit to Main Menu")
+
+        choice = input("Select an option: ").upper()
+        if choice == '1':
+            rename_archive(repo_path, archives)
+        elif choice == 'E':
+            break
+        else:
+            print("Invalid option. Please try again.")
+
+# Function to run the rename command
+def rename_archive(repo_path, archives):
+    if repo_path == "<no default set>":
+        print("Repository path is not set in the configuration.")
+        return
+
+    # Select archive to rename
+    old_archive_name = select_archive("old", archives)
+    if not old_archive_name:
+        return
+
+    # Prompt for the new archive name
+    new_archive_name = input("Enter the new archive name: ")
+    if not new_archive_name:
+        print("Error: New archive name cannot be empty.")
+        return
+
+    # Construct rename command
+    cmd = ['borg', 'rename', repo_path + f"::{old_archive_name}", new_archive_name]
+
+    try:
+        result = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        print(f"Archive renamed successfully:\n{result.stdout}")
+        logging.info(f"Borg rename command successful: {result.stdout}")
+
+        # Save settings as new defaults if user consents
+        config = load_config()
+        if config:
+            save_rename_defaults = input("Would you like to save this new archive name as a default? (Y/N): ").upper()
+            if save_rename_defaults == 'Y':
+                config['backup'].setdefault('archives', []).append(new_archive_name)
+                save_config(config)
+                print("New archive name saved successfully.")
+            else:
+                print("New archive name was not saved.")
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Borg rename command failed: {e.stderr}")
+        print(f"Error: {e.stderr}")
+
+def select_archive(position, archives):
+    """Select an archive for renaming."""
+    print(f"\nSelect the {position} archive to rename:")
+    for i, archive in enumerate(archives, start=1):
+        print(f"({i}) {archive}")
+    print("(C) Cancel and Return to Previous Menu")
+
+    choice = input("Choose an archive by number or 'C' to cancel: ").upper()
+    if choice == 'C':
+        return None
+    elif choice.isdigit() and 1 <= int(choice) <= len(archives):
+        return archives[int(choice) - 1]
+    else:
+        print("Invalid choice. Please try again.")
+        return None
+
+# Run the submenu directly if the script is called
+if __name__ == "__main__":
+    rename_borg_submenu()
+
 
 # print("(20) serve              (Start repository server process)")
 @error_handler
+def serve_borg_submenu():
+    """Submenu for Borg serve command with configurable options."""
+    config = load_config()
+    if not config:
+        print("Configuration file not found. Please ensure it exists.")
+        return
 
+    repo_path = config['borg'].get('repo', "<no default set>")
+    passphrase = config['borg'].get('passphrase', "<no default set>")
+    rsh = config['borg'].get('rsh', "<no default set>")
+
+    while True:
+        print("\nBorg Serve Submenu")
+        print("Options for starting a Borg server:")
+        print("(1) Start Borg Server")
+        print("(E) Exit to Main Menu")
+
+        choice = input("Select an option: ").upper()
+        if choice == '1':
+            start_borg_server(repo_path, passphrase, rsh)
+        elif choice == 'E':
+            break
+        else:
+            print("Invalid option. Please try again.")
+
+# Function to run the serve command
+def start_borg_server(repo_path, passphrase, rsh):
+    # Ensure required inputs are set, else prompt the user
+    if repo_path == "<no default set>":
+        repo_path = input("Enter the repository path: ")
+    if passphrase == "<no default set>":
+        passphrase = input("Enter the Borg passphrase: ")
+    if rsh == "<no default set>":
+        rsh = input("Enter the remote shell command (e.g., ssh -i /path/to/key): ")
+
+    # Set up environment variables
+    env = os.environ.copy()
+    env['BORG_PASSPHRASE'] = passphrase
+    env['BORG_RSH'] = rsh
+
+    # Run the Borg serve command
+    cmd = ['borg', 'serve']
+
+    try:
+        result = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, text=True)
+        print(f"Server started successfully:\n{result.stdout}")
+        logging.info(f"Borg serve command successful: {result.stdout}")
+
+        # Ask user if they want to save these settings for future use
+        save_serve_defaults(repo_path, passphrase, rsh)
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Borg serve command failed: {e.stderr}")
+        print(f"Error: {e.stderr}")
+
+def save_serve_defaults(repo_path, passphrase, rsh):
+    """Prompt to save the Borg serve settings as defaults in config.yaml."""
+    config = load_config()
+    if not config:
+        print("Configuration file not found. Could not save new defaults.")
+        return
+
+    save_defaults = input("Would you like to save these settings as defaults? (Y/N): ").upper()
+    if save_defaults == 'Y':
+        config['borg']['repo'] = repo_path
+        config['borg']['passphrase'] = passphrase
+        config['borg']['rsh'] = rsh
+        save_config(config)
+        print("Settings saved as defaults.")
+    else:
+        print("Settings not saved.")
+
+# Run the submenu directly if the script is called
+if __name__ == "__main__":
+    serve_borg_submenu()
 
 # print("(21) umount             (Umount repository)")
 @error_handler
+# Unmount submenu
+def unmount_borg_submenu():
+    """Submenu for Borg unmount command with configurable options."""
+    config = load_config()
+    if not config:
+        print("Configuration file not found. Please ensure it exists.")
+        return
+
+    repo_path = config['borg'].get('repo', "<no default set>")
+    mount_point = config['backup'].get('mount_point', "<no default set>")
+
+    while True:
+        print("\nBorg Unmount Submenu")
+        print("Options for unmounting a Borg repository:")
+        print("(1) Unmount Borg Repository")
+        print("(E) Exit to Main Menu")
+
+        choice = input("Select an option: ").upper()
+        if choice == '1':
+            unmount_borg_repo(repo_path, mount_point)
+        elif choice == 'E':
+            break
+        else:
+            print("Invalid option. Please try again.")
+
+# Function to run the umount command
+def unmount_borg_repo(repo_path, mount_point):
+    # Ensure required inputs are set, else prompt the user
+    if repo_path == "<no default set>":
+        repo_path = input("Enter the repository path: ")
+    if mount_point == "<no default set>":
+        mount_point = input("Enter the mount point to unmount: ")
+
+    # Run the Borg umount command
+    cmd = ['borg', 'umount', mount_point]
+
+    try:
+        result = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        print(f"Unmount successful:\n{result.stdout}")
+        logging.info(f"Borg umount command successful: {result.stdout}")
+
+        # Ask user if they want to save these settings for future use
+        save_umount_defaults(repo_path, mount_point)
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Borg umount command failed: {e.stderr}")
+        print(f"Error: {e.stderr}")
+
+def save_umount_defaults(repo_path, mount_point):
+    """Prompt to save the Borg umount settings as defaults in config.yaml."""
+    config = load_config()
+    if not config:
+        print("Configuration file not found. Could not save new defaults.")
+        return
+
+    save_defaults = input("Would you like to save these settings as defaults? (Y/N): ").upper()
+    if save_defaults == 'Y':
+        config['borg']['repo'] = repo_path
+        config['backup']['mount_point'] = mount_point
+        save_config(config)
+        print("Settings saved as defaults.")
+    else:
+        print("Settings not saved.")
+
+# Run the submenu directly if the script is called
+if __name__ == "__main__":
+    unmount_borg_submenu()
+
+
 # print("(22) upgrade            (Upgrade repository format)")
 @error_handler
+def upgrade_borg_repo(repo_path, encryption):
+    # Ensure required inputs are set, else prompt the user
+    if repo_path == "<no default set>":
+        repo_path = input("Enter the repository path: ")
+    if encryption == "<no default set>":
+        encryption = input("Enter the encryption method (e.g., repokey, none): ")
+
+    # Run the Borg upgrade command
+    cmd = ['borg', 'upgrade', repo_path]
+    confirm = input("Add '--confirm' to confirm the upgrade without prompts? (Y/N): ").upper()
+    if confirm == 'Y':
+        cmd.append('--confirm')
+
+    try:
+        result = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        print(f"Upgrade successful:\n{result.stdout}")
+        logging.info(f"Borg upgrade command successful: {result.stdout}")
+
+        # Ask user if they want to save these settings for future use
+        save_upgrade_defaults(repo_path, encryption)
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Borg upgrade command failed: {e.stderr}")
+        print(f"Error: {e.stderr}")
+
+def save_upgrade_defaults(repo_path, encryption):
+    """Prompt to save the Borg upgrade settings as defaults in config.yaml."""
+    config = load_config()
+    if not config:
+        print("Configuration file not found. Could not save new defaults.")
+        return
+
+    save_defaults = input("Would you like to save these settings as defaults? (Y/N): ").upper()
+    if save_defaults == 'Y':
+        config['borg']['repo'] = repo_path
+        config['borg']['encryption'] = encryption
+        save_config(config)
+        print("Settings saved as defaults.")
+    else:
+        print("Settings not saved.")
+
+# Run the submenu directly if the script is called
+if __name__ == "__main__":
+    upgrade_borg_submenu()
 
 # print("(23) with-lock          (Run user command with lock held)")
 @error_handler
+def with_lock_borg_submenu():
+    """Submenu for Borg with-lock command with configurable options."""
+    config = load_config()
+    if not config:
+        print("Configuration file not found. Please ensure it exists.")
+        return
+
+    repo_path = config['borg'].get('repo', "<no default set>")
+    rsh = config['borg'].get('rsh', "<no default set>")
+
+    while True:
+        print("\nBorg With-Lock Submenu")
+        print("Options for running a command with the repository lock held:")
+        print("(1) Run Command with Repository Lock")
+        print("(E) Exit to Main Menu")
+
+        choice = input("Select an option: ").upper()
+        if choice == '1':
+            with_lock_run_command(repo_path, rsh)
+        elif choice == 'E':
+            break
+        else:
+            print("Invalid option. Please try again.")
+
+# Function to run the with-lock command
+def with_lock_run_command(repo_path, rsh):
+    # Ensure required inputs are set, else prompt the user
+    if repo_path == "<no default set>":
+        repo_path = input("Enter the repository path: ")
+    if rsh == "<no default set>":
+        rsh = input("Enter the SSH command (for BORG_RSH, if needed): ")
+
+    # User command to run with the lock held
+    user_command = input("Enter the command to run with the lock held (e.g., ls, rm, etc.): ")
+    if not user_command:
+        print("Error: You must specify a command to run.")
+        return
+
+    # Set up the environment
+    env = os.environ.copy()
+    if rsh:
+        env['BORG_RSH'] = rsh
+
+    # Run the Borg with-lock command
+    cmd = ['borg', 'with-lock', repo_path] + user_command.split()
+    try:
+        result = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env)
+        print(f"Command executed successfully with lock:\n{result.stdout}")
+        logging.info(f"Borg with-lock command successful: {result.stdout}")
+
+        # Ask user if they want to save these settings for future use
+        save_with_lock_defaults(repo_path, rsh)
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Borg with-lock command failed: {e.stderr}")
+        print(f"Error: {e.stderr}")
+
+def save_with_lock_defaults(repo_path, rsh):
+    """Prompt to save the Borg with-lock settings as defaults in config.yaml."""
+    config = load_config()
+    if not config:
+        print("Configuration file not found. Could not save new defaults.")
+        return
+
+    save_defaults = input("Would you like to save these settings as defaults? (Y/N): ").upper()
+    if save_defaults == 'Y':
+        config['borg']['repo'] = repo_path
+        config['borg']['rsh'] = rsh
+        save_config(config)
+        print("Settings saved as defaults.")
+    else:
+        print("Settings not saved.")
+
+# Run the submenu directly if the script is called
+if __name__ == "__main__":
+    with_lock_borg_submenu()
+
 
 # print("(24) import-tar         (Create a backup archive from a tarball)")
 @error_handler
+def import_tar_borg_submenu():
+    """Submenu for Borg import-tar command with configurable options."""
+    config = load_config()
+    if not config:
+        print("Configuration file not found. Please ensure it exists.")
+        return
 
-# OTHER FUNCTIONS
+    repo_path = config['borg'].get('repo', "<no default set>")
+    archive_name = "<no default set>"
 
-# Modify the repository_options_menu function to show success/failure
-@error_handler
+    while True:
+        print("\nBorg Import-Tar Submenu")
+        print("Options for importing a tarball into the repository:")
+        print("(1) Import Tarball into Repository")
+        print("(E) Exit to Main Menu")
+
+        choice = input("Select an option: ").upper()
+        if choice == '1':
+            import_tar_command(repo_path, archive_name)
+        elif choice == 'E':
+            break
+        else:
+            print("Invalid option. Please try again.")
+
+# Function to run the import-tar command
+def import_tar_command(repo_path, archive_name):
+    # Ensure required inputs are set, else prompt the user
+    if repo_path == "<no default set>":
+        repo_path = input("Enter the repository path: ")
+    if archive_name == "<no default set>":
+        archive_name = input("Enter the archive name to import into: ")
+
+    # Get the tar file path from user
+    tar_file = input("Enter the path to the tar file: ")
+    if not tar_file:
+        print("Error: You must specify a tar file path.")
+        return
+
+    # Optional SSH command for remote repositories
+    rsh = config['borg'].get('rsh', None)
+    if not rsh:
+        rsh = input("Enter the SSH command (for BORG_RSH, if needed): ")
+
+    # Set up the environment
+    env = os.environ.copy()
+    if rsh:
+        env['BORG_RSH'] = rsh
+
+    # Run the Borg import-tar command
+    cmd = ['borg', 'import-tar', repo_path, tar_file, f"::{archive_name}"]
+    try:
+        result = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env)
+        print(f"Tarball imported successfully:\n{result.stdout}")
+        logging.info(f"Borg import-tar command successful: {result.stdout}")
+
+        # Ask user if they want to save these settings for future use
+        save_import_tar_defaults(repo_path, archive_name, rsh)
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Borg import-tar command failed: {e.stderr}")
+        print(f"Error: {e.stderr}")
+
+def save_import_tar_defaults(repo_path, archive_name, rsh):
+    """Prompt to save the Borg import-tar settings as defaults in config.yaml."""
+    config = load_config()
+    if not config:
+        print("Configuration file not found. Could not save new defaults.")
+        return
+
+    save_defaults = input("Would you like to save these settings as defaults? (Y/N): ").upper()
+    if save_defaults == 'Y':
+        config['borg']['repo'] = repo_path
+        config['borg']['rsh'] = rsh
+        config['backup']['archive_name'] = archive_name  # Example location
+        save_config(config)
+        print("Settings saved as defaults.")
+    else:
+        print("Settings not saved.")
+
+# Run the submenu directly if the script is called
+if __name__ == "__main__":
+    import_tar_borg_submenu()
+
 
 # Handle submenu option
 @error_handler
@@ -1315,7 +2250,7 @@ def main():
                 '11': extract_borg_submenu,  # Extract archive
                 '12': info_borg_submenu,     # Show repository info
                 '13': init_borg_submenu,     # Initialize repository
-                '14': manage_key,            # Manage repository key
+                '14': key_borg_submenu,      # Manage repository key
                 '15': list_contents,         # List repository contents
                 '16': mount_repository,      # Mount repository
                 '17': prune_archives,        # Prune archives
