@@ -2163,10 +2163,11 @@ def clear_screen():
     """Clear the terminal screen."""
     os.system('clear')
 
-# Main program loop with command mapping
 @error_handler
 def main():
     try:
+        config = load_config()  # Load config once at the beginning if needed
+
         while True:
             clear_screen()
             display_menu()
@@ -2175,33 +2176,33 @@ def main():
             command_map = {
                 'M': display_menu,
                 'H': show_borg_help,
-                'N': run_borg_backup,
-                'A': add_borg_to_crontab,
+                'N': lambda: run_borg_backup(config),   # Pass config if needed
+                'A': lambda: add_borg_to_crontab(config),  # Pass config
                 'E': exit_program,
-                '1': benchmark_submenu,        # Example function to run the benchmark
-                '2': break_lock_command,       # Example function to break repository locks
-                '3': check_repo,               # Verify repository
-                '4': borg_compact,             # Compact segment files
-                '5': create_yaml_config,       # Config setup
-                '6': create_backup,            # Create backup
-                '7': debug_borg_submenu,       # Debugging
-                '8': delete_archive_borg_submenu,      # Delete archive
-                '9': diff_archives,            # Find differences
-                '10': export_tar,              # Export tarball
-                '11': extract_borg_submenu,    # Extract archive
-                '12': info_borg_submenu,       # Show repository info
-                '13': init_borg_submenu,       # Initialize repository
-                '14': key_borg_submenu,        # Manage repository key
-                '15': list_borg_submenu,       # List repository contents
-                '16': mount_borg_submenu,      # Mount repository
-                '17': prune_borg_submenu,      # Prune archives
-                '18': recreate_borg_submenu,   # Re-create archives
-                '19': rename_borg_submenu,     # Rename archive
-                '20': serve_borg_submenu,      # Start server process
-                '21': unmount_borg_submenu,    # Umount repository
-                '22': upgrade_borg_submenu,    # Upgrade format
-                '23': with_lock_borg_submenu,  # Run command with lock held
-                '24': import_tar_borg_submenu, # Import tar to archive
+                '1': benchmark_submenu,
+                '2': break_lock_command,
+                '3': check_repo,
+                '4': borg_compact,
+                '5': create_yaml_config,
+                '6': lambda: create_backup(config),  # Pass config to create_backup
+                '7': debug_borg_submenu,
+                '8': delete_archive_borg_submenu,
+                '9': diff_archives,
+                '10': export_tar,
+                '11': extract_borg_submenu,
+                '12': info_borg_submenu,
+                '13': init_borg_submenu,
+                '14': key_borg_submenu,
+                '15': list_borg_submenu,
+                '16': mount_borg_submenu,
+                '17': prune_borg_submenu,
+                '18': recreate_borg_submenu,
+                '19': rename_borg_submenu,
+                '20': serve_borg_submenu,
+                '21': unmount_borg_submenu,
+                '22': upgrade_borg_submenu,
+                '23': with_lock_borg_submenu,
+                '24': import_tar_borg_submenu,
             }
     
             if choice in command_map:
@@ -2211,6 +2212,7 @@ def main():
 
     except KeyboardInterrupt:
         print("\nProgram interrupted. Exiting gracefully.")
+        logging.info("Program exited via KeyboardInterrupt.")
         exit()
 
 if __name__ == "__main__":
