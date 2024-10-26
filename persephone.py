@@ -439,19 +439,51 @@ def add_borg_to_crontab(config):
 # print("(1) benchmark           (Benchmark command)")
 @error_handler
 def benchmark_submenu():
-    """Submenu for Borg benchmark options."""
-    config = load_config()  # Load configuration values
-    if not config:
-        print("Configuration file not found. Please ensure it exists.")
-        return
-        
-    options = {
-        '1': {'label': 'CRUD (Create, Read, Update, Delete)', 'action': lambda: run_borg_command(['borg', 'benchmark', 'crud'])},
-        # Additional benchmark subcommands can go here if needed.
-    }
+    config = load_config()
 
-    # Display the submenu using the existing submenu handler
-    submenu_handler(options)
+    while True:
+        print("\nBenchmark Options:")
+        print("1. Specify Archive")
+        print("2. Specify Repo Path")
+        print("3. Specify Additional Options")
+        print("4. Run Benchmark")
+        print("5. Return to Main Menu")
+        
+        choice = input("Select an option: ")
+
+        if choice == '1':
+            config['archive'] = prompt_user("archive", config.get('archive', '<archive_default>'))
+        elif choice == '2':
+            config['repo_path'] = prompt_user("repo_path", config.get('repo_path', '<repo_path_default>'))
+        elif choice == '3':
+            additional_options(config)
+        elif choice == '4':
+            run_benchmark(config)
+        elif choice == '5':
+            break
+        else:
+            print("Invalid choice. Please try again.")
+
+        save_config(config)
+
+def prompt_user(option, default):
+    user_input = input(f"Enter {option} (default: {default}): ")
+    return user_input if user_input else default
+
+def additional_options(config):
+    config['passphrase'] = prompt_user("passphrase", config.get('passphrase', 'default_passphrase'))
+    config['encryption'] = prompt_user("encryption", config.get('encryption', 'default_encryption'))
+    config['rsh'] = prompt_user("remote shell command (rsh)", config.get('rsh', 'default_rsh'))
+    config['paths_to_backup'] = prompt_user("paths to backup", config.get('paths_to_backup', '/etc /home'))
+    config['exclude_patterns'] = prompt_user("exclude patterns", config.get('exclude_patterns', '.cache, var/tmp'))
+    config['compression'] = prompt_user("compression", config.get('compression', 'lz4'))
+    config['prune'] = prompt_user("prune policy", config.get('prune', 'default_prune'))
+
+def run_benchmark(config):
+    # Construct the benchmark command
+    cmd = f"borg benchmark cpu --repo {config.get('repo_path')} --compression {config.get('compression')}"
+    print("Running command:", cmd)
+    # Here you would actually run the command, e.g., using subprocess.run()
 
 # print("(2) break-lock          (Break repository and cache locks)")
 @error_handler
