@@ -631,37 +631,38 @@ def clear_screen():
 # Main program loop
 @error_handler
 def main():
-    while True:
-        clear_screen()
-        display_menu()
-        choice = input("Select an option or Borg command number: ").upper()
-
-        if choice == 'M':
+    try:
+        while True:
+            clear_screen()
             display_menu()
-        elif choice == 'H':
-            show_borg_help()
-        elif choice == 'N':
-            print("Running backup now...")
-            config = load_config()
-            if config:
-                run_borg_backup(config)  # Run the backup
+            choice = input("Select an option or Borg command number: ").upper()
+    
+            if choice == 'M':
+                display_menu()
+            elif choice == 'H':
+                show_borg_help()
+            elif choice == 'N':
+                print("Running backup now...")
+                config = load_config()
+                if config:
+                    run_borg_backup(config)  # Run the backup
+                else:
+                    print("Error: No valid configuration found.")
+            elif choice == 'A':  # Automate backup option
+                print("Automating backup by adding it to crontab...")
+                config = load_config()  # Load the Borg configuration
+                if config:
+                    add_borg_to_crontab(config)  # Call the function to automate backups
+                else:
+                    print("Error: No valid configuration found.")
+            elif choice == 'E':
+                print("Exiting program...")
+                exit_program()
             else:
-                print("Error: No valid configuration found.")
-        elif choice == 'A':  # Automate backup option
-            print("Automating backup by adding it to crontab...")
-            config = load_config()  # Load the Borg configuration
-            if config:
-                add_borg_to_crontab(config)  # Call the function to automate backups
-            else:
-                print("Error: No valid configuration found.")
-        elif choice == 'E':
-            print("Exiting program...")
-            exit_program()
-        else:
-            handle_borg_command(choice)
-except KeyboardInterrupt:
-    print("\nProgram interrupted. Exiting gracefully.")
-    exit()
+                handle_borg_command(choice)
+    except KeyboardInterrupt:
+        print("\nProgram interrupted. Exiting gracefully.")
+        exit()
 
 if __name__ == "__main__":
     main()
