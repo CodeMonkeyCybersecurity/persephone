@@ -659,7 +659,7 @@ def main():
             exit_program()
         else:
             handle_borg_command(choice)
-except KeyboardInterrupt
+except KeyboardInterrupt:
     print("\nProgram interrupted. Exiting gracefully.")
     exit()
 
