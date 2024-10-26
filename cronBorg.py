@@ -2,10 +2,19 @@ import yaml
 import subprocess
 import socket
 import logging
+import os
 from datetime import datetime
 
+
+# Define the log file and directory
+LOG_DIR = '/var/log/CodeMonkeyCyber'
+LOG_FILE = f'{LOG_DIR}/Persephone.log'
+
+# Ensure the log directory exists
+os.makedirs(LOG_DIR, exist_ok=True)
+
 # Configure logging
-logging.basicConfig(filename='/var/log/eos_borg_backup.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(filename=LOG_FILE, level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Path to the config file
 CONFIG_FILE = '/etc/CodeMonkeyCyber/Persephone/borgConfig.yaml'
@@ -61,14 +70,14 @@ def add_borg_to_crontab(config):
 
         # Command to run Borg backup using the current configuration
         borg_backup_command = (
-            f"borg create {config['borg']['repo']}::{socket.gethostname()}-{datetime.now().strftime('%Y-%m-%dT%H:%M:%S')} "
+            f"sh -c 'borg create {config['borg']['repo']}::{socket.gethostname()}-$(date +\\%Y-\\%m-\\%dT\\%H:\\%M:\\%S) "
             f"{' '.join(config['backup']['paths_to_backup'])} "
             f"--compression {config['backup'].get('compression', 'zstd')} "
-            f"--exclude-caches"
+            f"--exclude-caches' "
         )
 
         # Construct the crontab entry with logging
-        cron_entry = f"{cron_time} {borg_backup_command} >> /var/log/eos_borg_backup.log 2>&1"
+        cron_entry = f"{cron_time} {borg_backup_command} >> {LOG_DIR}/{LOG_FILE} 2>&1"
 
         # Check if the crontab entry already exists
         try:
