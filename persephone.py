@@ -625,8 +625,105 @@ def debug_refcounts():
 def debug_corpora():
     subprocess.run(['borg', 'debug', 'corpora'], check=True)
 
+# Delete submenu
 # print("(8) delete              (Delete archive)")
 @error_handler
+def delete_borg_submenu():
+    """Present a submenu for Borg delete operations."""
+    config = load_config()  # Load configuration values
+    if not config:
+        print("Configuration file not found. Please ensure the configuration file exists and try again.")
+        return
+
+    repo_path = config.get('borg', {}).get('repo', "<no default set>")
+    archives = config.get('backup', {}).get('archives', [])
+
+    while True:
+        print("\nBorg Delete Submenu")
+        print("(1) Delete Entire Repository")
+        print("(2) Delete Specific Archive")
+        print("(E) Exit to Main Menu")
+
+        choice = input("Select an option: ").upper()
+
+        if choice == '1':
+            confirm_delete_repo(repo_path)
+        elif choice == '2':
+            delete_specific_archive(repo_path, archives)
+        elif choice == 'E':
+            break
+        else:
+            print("Invalid option. Please try again.")
+
+def confirm_delete_repo(repo_path):
+    """Prompt to confirm deletion of the entire repository."""
+    print(f"\nDeleting entire repository at: {repo_path}")
+    confirm = input("Are you sure you want to delete the entire repository? (Y/N): ").upper()
+    if confirm == 'Y':
+        force = input("Add '--force' to bypass further prompts? (Y/N): ").upper()
+        force_flag = '--force' if force == 'Y' else ''
+        run_delete_command(repo_path, force_flag=force_flag)
+    else:
+        print("Repository deletion canceled.")
+
+def delete_specific_archive(repo_path, archives):
+    """Delete a specific archive within the repository."""
+    print(f"\nRepository Path: {repo_path}")
+    print("Available Archives:")
+    for i, archive in enumerate(archives, start=1):
+        print(f"({i}) {archive}")
+    print("(C) Cancel and Return to Previous Menu")
+
+    choice = input("Select an archive to delete: ").upper()
+
+    if choice.isdigit() and 1 <= int(choice) <= len(archives):
+        archive = archives[int(choice) - 1]
+        force = input("Add '--force' to bypass further prompts? (Y/N): ").upper()
+        stats = input("Add '--stats' to view stats after deletion? (Y/N): ").upper()
+        force_flag = '--force' if force == 'Y' else ''
+        stats_flag = '--stats' if stats == 'Y' else ''
+        run_delete_command(repo_path, archive=archive, force_flag=force_flag, stats_flag=stats_flag)
+    elif choice == 'C':
+        print("Archive deletion canceled.")
+    else:
+        print("Invalid selection. Returning to delete menu.")
+
+def run_delete_command(repo_path, archive=None, force_flag='', stats_flag=''):
+    """Run Borg delete command with specified options."""
+    cmd = ['borg', 'delete', repo_path]
+    if archive:
+        cmd.append(f"::{archive}")
+    if force_flag:
+        cmd.append(force_flag)
+    if stats_flag:
+        cmd.append(stats_flag)
+
+    try:
+        result = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        print(f"Deletion successful:\n{result.stdout}")
+        logging.info(f"Borg delete command successful: {result.stdout}")
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Borg delete command failed: {e.stderr}")
+        print(f"Error: {e.stderr}")
+
+# Integrate delete submenu into the main menu
+def main():
+    while True:
+        print("\nMain Menu")
+        print("(D) Delete Submenu")
+        print("(E) Exit Program")
+        
+        choice = input("Select an option: ").upper()
+        if choice == 'D':
+            delete_borg_submenu()
+        elif choice == 'E':
+            print("Exiting program.")
+            break
+        else:
+            print("Invalid option. Please try again.")
+
+if __name__ == "__main__":
+    main()
 
 # print("(9) diff                (Find differences in archive contents)")
 @error_handler
@@ -752,7 +849,7 @@ def main():
                 '5': create_yaml_config,     # Config setup
                 '6': create_backup,          # Create backup
                 '7': debug_borg_submenu,     # Debugging
-                '8': delete_archive,         # Delete archive
+                '8': delete_borg_submenu,    # Delete archive
                 '9': diff_archives,          # Find differences
                 '10': export_tar,            # Export tarball
                 '11': extract_archive,       # Extract archive
