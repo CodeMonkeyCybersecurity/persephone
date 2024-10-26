@@ -139,6 +139,11 @@ def create_yaml_config():
             'paths_to_backup': ["/var", "/etc", "/home", "/root", "/opt", "/mnt", "/usr"],
             'exclude_patterns': ["home/*/.cache/*", "var/tmp/*"],
             'compression': "zstd"
+            'prune': {  # Default prune values
+                'daily': 7,
+                'weekly': 4,
+                'monthly': 6,
+                'yearly': 1
         }
     }
     
