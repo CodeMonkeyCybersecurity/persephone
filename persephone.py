@@ -2161,7 +2161,7 @@ def main():
                 '19': rename_borg_submenu,
                 '20': serve_borg_submenu,
                 '21': unmount_borg_submenu,
-                '22': upgrade_borg_submenu,
+                '22': upgrade_borg_repo,
                 '23': with_lock_borg_submenu,
                 '24': import_tar_borg_submenu,
             }
