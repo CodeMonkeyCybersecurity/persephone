@@ -556,6 +556,74 @@ def create_backup(config):
 
 # print("(7) debug               (Debugging command)")
 @error_handler
+def debug_borg_submenu():
+    """Display the debugging submenu and execute the selected command."""
+    debug_options = {
+        '1': {"label": "Dump Archive", "command": debug_dump_archive},
+        '2': {"label": "Dump Repo", "command": debug_dump_repo},
+        '3': {"label": "Get Object", "command": debug_get_obj},
+        '4': {"label": "Put Object", "command": debug_put_obj},
+        '5': {"label": "Dump Manifest", "command": debug_dump_manifest},
+        '6': {"label": "Reference Counts", "command": debug_refcounts},
+        '7': {"label": "Generate/Check Corpora", "command": debug_corpora}
+    }
+
+    while True:
+        print("\nBorg Debugging Submenu")
+        for key, option in debug_options.items():
+            print(f"({key}) {option['label']}")
+        print("(M) Return to Main Menu")
+        print("(E) Exit")
+
+        choice = input("Select a debugging option: ").upper()
+        if choice == 'M':
+            display_menu()
+            break
+        elif choice == 'E':
+            exit_program()
+        elif choice in debug_options:
+            debug_options[choice]["command"]()  # Run the selected debug command
+        else:
+            print("Invalid option. Please try again.")
+
+# Define each debug command function
+
+@error_handler
+def debug_dump_archive():
+    repo_path = input("Enter the repository path: ")
+    archive_name = input("Enter the archive name: ")
+    subprocess.run(['borg', 'debug', 'dump-archive', repo_path, archive_name], check=True)
+
+@error_handler
+def debug_dump_repo():
+    repo_path = input("Enter the repository path: ")
+    subprocess.run(['borg', 'debug', 'dump-repo', repo_path], check=True)
+
+@error_handler
+def debug_get_obj():
+    repo_path = input("Enter the repository path: ")
+    hex_object_id = input("Enter the hex object ID: ")
+    subprocess.run(['borg', 'debug', 'get-obj', repo_path, hex_object_id], check=True)
+
+@error_handler
+def debug_put_obj():
+    repo_path = input("Enter the repository path: ")
+    hex_object_id = input("Enter the hex object ID: ")
+    subprocess.run(['borg', 'debug', 'put-obj', repo_path, hex_object_id], check=True)
+
+@error_handler
+def debug_dump_manifest():
+    repo_path = input("Enter the repository path: ")
+    subprocess.run(['borg', 'debug', 'dump-manifest', repo_path], check=True)
+
+@error_handler
+def debug_refcounts():
+    repo_path = input("Enter the repository path: ")
+    subprocess.run(['borg', 'debug', 'refcounts', repo_path], check=True)
+
+@error_handler
+def debug_corpora():
+    subprocess.run(['borg', 'debug', 'corpora'], check=True)
 
 # print("(8) delete              (Delete archive)")
 @error_handler
@@ -683,7 +751,7 @@ def main():
                 '4': borg_compact,           # Compact segment files
                 '5': create_yaml_config,     # Config setup
                 '6': create_backup,          # Create backup
-                '7': debug_command,          # Debugging
+                '7': debug_borg_submenu,     # Debugging
                 '8': delete_archive,         # Delete archive
                 '9': diff_archives,          # Find differences
                 '10': export_tar,            # Export tarball
