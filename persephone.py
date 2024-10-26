@@ -656,7 +656,7 @@ def main():
             command_map = {
                 'M': display_menu,
                 'H': show_borg_help,
-                'N': run_borg_backup_now,
+                'N': run_borg_backup,
                 'A': automate_backup_crontab,
                 'E': exit_program,
                 '1': benchmark_command,      # Example function to run the benchmark
