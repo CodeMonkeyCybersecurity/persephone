@@ -195,18 +195,29 @@ def load_config():
         return None
 
 def save_config(config):
-    """Save the modified YAML config file."""
-    try:
+    """Save the YAML config file."""
+    config_dir = os.path.dirname(CONFIG_PATH)   # Ensure the directory exists
+    if not os.path.exists(config_dir):
+        try:
+            os.makedirs(config_dir, exist_ok=True)  # Create the directory with necessary permissions
+            logging.info(f"Directory created at {config_dir}")
+        except OSError as e:
+            logging.error(f"Failed to create the directory {config_dir}: {e}")
+            print(f"Error: Could not create the directory {config_dir}. Please check permissions.")
+            return
+        
+    try:     # Attempt to save the configuration file
         with open(CONFIG_PATH, 'w') as file:
             yaml.safe_dump(config, file)
         logging.info(f"Configuration updated and saved to {CONFIG_PATH}.")
+        print(f"Configuration file saved successfully at {CONFIG_PATH}")
     except OSError as e:
         logging.error(f"Failed to write the configuration file: {e}")
+        print(f"Error: Could not write the configuration file. {e}")
 
 
 # Validate or create config file if necessary
 validate_or_create_config()
-
 
 # Main menu for selecting commands
 @error_handler
