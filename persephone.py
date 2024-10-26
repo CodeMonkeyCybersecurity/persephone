@@ -622,6 +622,12 @@ def run_borg_command(command):
         logging.error(f"Command failed: {e.stderr}")
         print(f"Error: {e.stderr}")
 
+# Clear the screen
+@error_handler
+def clear_screen():
+    """Clear the terminal screen."""
+    os.system('clear')
+
 # Main program loop
 @error_handler
 def main():
