@@ -679,8 +679,8 @@ def main():
                 'E': exit_program,
                 '1': benchmark_submenu,      # Example function to run the benchmark
                 '2': break_lock_command,     # Example function to break repository locks
-                '3': check_repository,       # Verify repository
-                '4': compact_repository,     # Compact segment files
+                '3': check_repo,             # Verify repository
+                '4': borg_compact,           # Compact segment files
                 '5': create_yaml_config,     # Config setup
                 '6': create_borg_backup,     # Create backup
                 '7': debug_command,          # Debugging
