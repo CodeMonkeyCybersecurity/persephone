@@ -661,6 +661,7 @@ def main():
             handle_borg_command(choice)
 except KeyboardInterrupt
     print("\nProgram interrupted. Exiting gracefully.")
+    exit()
 
 if __name__ == "__main__":
     main()
