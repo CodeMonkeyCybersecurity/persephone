@@ -7,10 +7,10 @@ from datetime import datetime
 import socket  # Used to get the hostname
 
 # Fle configuration path for backup configs
-CONFIG_PATH = "/etc/eos/borg_config.yaml"
+CONFIG_PATH = "/etc/CodeMonkeyCyber/Persephone/borgConfig.yaml"
 
 # Set up logging to output to both a file and the console
-file_handler = logging.FileHandler("/var/log/eos.log")
+file_handler = logging.FileHandler("/var/log/persephone.log")
 file_handler.setLevel(logging.DEBUG)  # Log all levels to the log file
 
 console_handler = logging.StreamHandler()
@@ -348,37 +348,45 @@ def borg_compact():
 # print("(5) config              (Get and set configuration values)")
 @error_handler
 def create_yaml_config():
-    """Create the YAML config file at /etc/eos/borg_config.yaml with default values."""
-    # Default values for the configuration
-    default_repo = "henry@ubuntu-backups:/mnt/cybermonkey"
-    default_passphrase = "Linseed7)Twine33Phoney57Barracuda4)Province0"
-    default_encryption = "repokey"
-    default_paths_to_backup = "/var,/etc,/home,/root,/opt,/mnt"
-    default_exclude_patterns = "home/*/.cache/*,var/tmp/*"
-    default_compression = "zstd"
+    """Create the YAML config file at {CONFIG_PATH} with default values.
 
-    # Prompt the user for inputs, with default values suggested
-    config = {
+    This function allows the user to enter configuration settings for BorgBackup. If
+    the user does not provide an input, the default value is used.
+    """
+    # Hardcoded default values
+    hardcoded_defaults = {
         'borg': {
-            'repo': input(f"Enter the Borg repository path (default: {default_repo}): ") or default_repo,
-            'passphrase': input(f"Enter the Borg passphrase (default: {default_passphrase}): ") or default_passphrase,
-            'encryption': input(f"Enter the encryption type (e.g., repokey, none, default: {default_encryption}): ") or default_encryption
+            'repo': "user@backup-hostname:/path/to/borgRepo",
+            'passphrase': "SecretPassword",
+            'encryption': "repokey"
         },
         'backup': {
-            'paths_to_backup': input(f"Enter the directories to back up (comma-separated, default: {default_paths_to_backup}): ") or default_paths_to_backup,
-            'exclude_patterns': input(f"Enter exclude patterns (comma-separated, default: {default_exclude_patterns}): ") or default_exclude_patterns,
-            'compression': input(f"Enter the compression method (e.g., lz4, zstd, default: {default_compression}): ") or default_compression
+            'paths_to_backup': ["/var", "/etc", "/home", "/root", "/opt", "/mnt", "/usr"],
+            'exclude_patterns': ["home/*/.cache/*", "var/tmp/*"],
+            'compression': "zstd"
         }
     }
+    
+    # Load existing config if it exists, else use hardcoded defaults
+    config = load_config() or hardcoded_defaults
 
-    # Save to YAML
-    try:
-        os.makedirs(os.path.dirname(CONFIG_PATH), exist_ok=True)
-        with open(CONFIG_PATH, 'w') as file:
-            yaml.safe_dump(config, file)
-        logging.info(f"Configuration saved to {CONFIG_PATH}.")
-    except OSError as e:
-        logging.error(f"Failed to write the configuration file: {e}")
+    # Prompt user for each setting, using the loaded value as the default
+    config['borg']['repo'] = input(f"Enter the Borg repository path (default: {config['borg']['repo']}): ") or config['borg']['repo']
+    config['borg']['passphrase'] = input(f"Enter the Borg passphrase (default: {config['borg']['passphrase']}): ") or config['borg']['passphrase']
+    config['borg']['encryption'] = input(f"Enter the encryption type (e.g., repokey, none, default: {config['borg']['encryption']}): ") or config['borg']['encryption']
+
+    # Get backup settings
+    paths_to_backup = input(f"Enter the directories to back up (comma-separated, default: {','.join(config['backup']['paths_to_backup'])}): ")
+    config['backup']['paths_to_backup'] = paths_to_backup.split(',') if paths_to_backup else config['backup']['paths_to_backup']
+    
+    exclude_patterns = input(f"Enter exclude patterns (comma-separated, default: {','.join(config['backup']['exclude_patterns'])}): ")
+    config['backup']['exclude_patterns'] = exclude_patterns.split(',') if exclude_patterns else config['backup']['exclude_patterns']
+    
+    config['backup']['compression'] = input(f"Enter the compression method (e.g., lz4, zstd, default: {config['backup']['compression']}): ") or config['backup']['compression']
+
+    # Save the configuration to YAML
+    save_config(config)
+    print(f"Configuration file updated successfully at {CONFIG_PATH}")
 
 def load_config():
     """Load configuration from YAML file."""
