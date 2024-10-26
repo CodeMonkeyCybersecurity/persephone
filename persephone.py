@@ -1035,8 +1035,100 @@ def run_extract_command(repo_path, archive, paths, progress, dry_run, numeric_ow
 # Run the submenu directly if the script is called
 if __name__ == "__main__":
     extract_borg_submenu()
+    
 # print("(12) info               (Show repository or archive information)")
 @error_handler
+def info_borg_submenu():
+    """Submenu for Borg info command with configurable options."""
+    config = load_config()
+    if not config:
+        print("Configuration file not found. Please ensure it exists.")
+        return
+
+    repo_path = config['borg'].get('repo', "<no default set>")
+    archives = config.get('backup', {}).get('archives', [])
+
+    while True:
+        print("\nBorg Info Submenu")
+        print("Available options:")
+        print("(1) Show Info for Repository")
+        print("(2) Show Info for Specific Archive")
+        print("(E) Exit to Main Menu")
+
+        choice = input("Select an option: ").upper()
+        if choice == '1':
+            show_info(repo_path)
+        elif choice == '2':
+            show_archive_info(repo_path, archives)
+        elif choice == 'E':
+            break
+        else:
+            print("Invalid option. Please try again.")
+
+def show_info(repo_path):
+    """Display information for the entire repository."""
+    if repo_path == "<no default set>":
+        print("Repository path is not set in the configuration.")
+        return
+
+    # Optional flags
+    json_flag = input("Display output in JSON format with '--json'? (Y/N): ").upper() == 'Y'
+    first_flag = input("Show info for the first archive only with '--first'? (Y/N): ").upper() == 'Y'
+    last_flag = input("Show info for the last archive only with '--last'? (Y/N): ").upper() == 'Y'
+
+    # Construct and run the Borg info command
+    run_info_command(repo_path, json_flag, first_flag, last_flag)
+
+def show_archive_info(repo_path, archives):
+    """Display information for a specific archive."""
+    if repo_path == "<no default set>":
+        print("Repository path is not set in the configuration.")
+        return
+
+    print(f"\nRepository Path: {repo_path}")
+    print("Available Archives:")
+    for i, archive in enumerate(archives, start=1):
+        print(f"({i}) {archive}")
+    print("(C) Cancel and Return to Previous Menu")
+
+    archive_choice = input("Choose an archive by number or 'C' to cancel: ").upper()
+    if archive_choice == 'C':
+        return
+    elif archive_choice.isdigit() and 1 <= int(archive_choice) <= len(archives):
+        selected_archive = archives[int(archive_choice) - 1]
+    else:
+        print("Invalid choice.")
+        return
+
+    # Optional flags
+    json_flag = input("Display output in JSON format with '--json'? (Y/N): ").upper() == 'Y'
+
+    # Construct and run the Borg info command for the selected archive
+    run_info_command(repo_path, json_flag, archive=selected_archive)
+
+def run_info_command(repo_path, json_flag=False, first_flag=False, last_flag=False, archive=None):
+    """Run Borg info command with specified options."""
+    cmd = ['borg', 'info', repo_path]
+    if archive:
+        cmd.append(f"::{archive}")
+    if json_flag:
+        cmd.append('--json')
+    if first_flag:
+        cmd.append('--first')
+    if last_flag:
+        cmd.append('--last')
+
+    try:
+        result = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        print(f"Info retrieved:\n{result.stdout}")
+        logging.info(f"Borg info command successful: {result.stdout}")
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Borg info command failed: {e.stderr}")
+        print(f"Error: {e.stderr}")
+
+# Run the submenu directly if the script is called
+if __name__ == "__main__":
+    info_borg_submenu()
 
 # print("(13) init               (Initialize empty repository)")
 @error_handler
@@ -1154,7 +1246,7 @@ def main():
                 '9': diff_archives,          # Find differences
                 '10': export_tar,            # Export tarball
                 '11': extract_borg_submenu,  # Extract archive
-                '12': show_info,             # Show repository info
+                '12': info_borg_submenu,     # Show repository info
                 '13': init_repository,       # Initialize repository
                 '14': manage_key,            # Manage repository key
                 '15': list_contents,         # List repository contents
