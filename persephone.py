@@ -468,6 +468,9 @@ def break_lock_command(config):
     except subprocess.CalledProcessError as e:
         logging.error(f"Failed to break lock on repository: {e.stderr}")
         print(f"Error: Failed to break lock on repository. {e.stderr}")
+ 
+    # Display the submenu using the existing submenu handler
+    submenu_handler(options)
 
 # print("(3) check               (Verify repository)")
 @error_handler
@@ -488,6 +491,10 @@ def check_repo(config):
         print(f"Error: Repository check failed for {repo}. {e.stderr}")  # Failure message
         return False  # Indicate failure
 
+    # Display the submenu using the existing submenu handler
+    submenu_handler(options)
+
+
 # print("(4) compact             (Compact segment files / free space in repo)")
 @error_handler
 def borg_compact():
@@ -506,6 +513,7 @@ def borg_compact():
         
 # print("(5) config              (Get and set configuration values)")
 # Required configuration keys and their subkeys
+
 
 # print("(6) create              (Create backup)")
 @error_handler
@@ -572,6 +580,9 @@ def create_backup(config):
         logging.error(f"An error occurred during repository creation: {e}")
         print(f"Error: {e}")
         return False
+        
+    # Display the submenu using the existing submenu handler
+    submenu_handler(options)
 
 
 # print("(7) debug               (Debugging command)")
@@ -644,6 +655,9 @@ def debug_refcounts():
 @error_handler
 def debug_corpora():
     subprocess.run(['borg', 'debug', 'corpora'], check=True)
+
+    # Display the submenu using the existing submenu handler
+    submenu_handler(options)
 
 # Delete submenu
 # print("(8) delete              (Delete archive)")
@@ -725,6 +739,10 @@ def run_delete_command(repo_path, archive=None, force_flag='', stats_flag=''):
     except subprocess.CalledProcessError as e:
         logging.error(f"Borg delete command failed: {e.stderr}")
         print(f"Error: {e.stderr}")
+        
+    # Display the submenu using the existing submenu handler
+    submenu_handler(options)
+
 
 # print("(9) diff                (Find differences in archive contents)")
 @error_handler
