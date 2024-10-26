@@ -1,5 +1,6 @@
 import yaml
 import os
+import logging
 
 # Paths
 CONFIG_FILE = '/etc/CodeMonkeyCyber/Persephone/borgConfig.yaml'
@@ -65,5 +66,14 @@ def load_config():
 # Example function that uses the config
 def init_borg_repo():
     config = load_config()
-    print("Configuration loaded successfully.")
+    logging.info("Configuration loaded successfully.")
     # Rest of your function here
+
+# Main function to run the script
+def main():
+    load_config()
+    init_borg_repo()
+
+# Run main() if the script is executed directly
+if __name__ == "__main__":
+    main()
