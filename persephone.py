@@ -309,6 +309,24 @@ def benchmark_submenu():
 
 # print("(2) break-lock          (Break repository and cache locks)")
 @error_handler
+def break_lock_command(config):
+    """Run the Borg 'break-lock' command to remove locks from the repository."""
+    try:
+        repo = config['borg'].get('repo')  # Retrieve the repository path from the config
+        if not repo:
+            print("Repository path not set in configuration.")
+            return
+
+        # Run the Borg 'break-lock' command
+        borg_cmd = ['borg', 'break-lock', repo]
+        result = subprocess.run(borg_cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        
+        logging.info(f"Lock on repository {repo} broken successfully.")
+        print(f"Lock on repository {repo} broken successfully.\n{result.stdout}")
+
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Failed to break lock on repository: {e.stderr}")
+        print(f"Error: Failed to break lock on repository. {e.stderr}")
 
 # print("(3) check               (Verify repository)")
 @error_handler
@@ -659,7 +677,7 @@ def main():
                 'N': run_borg_backup,
                 'A': add_borg_to_crontab,
                 'E': exit_program,
-                '1': benchmark_command,      # Example function to run the benchmark
+                '1': benchmark_submenu,      # Example function to run the benchmark
                 '2': break_lock_command,     # Example function to break repository locks
                 '3': check_repository,       # Verify repository
                 '4': compact_repository,     # Compact segment files
