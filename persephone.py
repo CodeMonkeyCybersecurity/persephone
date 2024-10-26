@@ -1314,7 +1314,7 @@ def main():
                 '10': export_tar,            # Export tarball
                 '11': extract_borg_submenu,  # Extract archive
                 '12': info_borg_submenu,     # Show repository info
-                '13': init_repository,       # Initialize repository
+                '13': init_borg_submenu,     # Initialize repository
                 '14': manage_key,            # Manage repository key
                 '15': list_contents,         # List repository contents
                 '16': mount_repository,      # Mount repository
