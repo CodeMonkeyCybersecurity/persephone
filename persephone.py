@@ -1132,6 +1132,73 @@ if __name__ == "__main__":
 
 # print("(13) init               (Initialize empty repository)")
 @error_handler
+def init_borg_submenu():
+    """Submenu for Borg init command with configurable options."""
+    config = load_config()
+    if not config:
+        print("Configuration file not found. Please ensure it exists.")
+        return
+
+    # Load values from config.yaml with defaults
+    repo_path = config['borg'].get('repo', "<no default set>")
+    encryption_type = config['borg'].get('encryption', 'repokey')
+    rsh_command = config['borg'].get('rsh', "ssh -i /path/to/id_ed25519")
+    
+    while True:
+        print("\nBorg Init Submenu")
+        print("Available options:")
+        print("(1) Initialize Repository")
+        print("(E) Exit to Main Menu")
+
+        choice = input("Select an option: ").upper()
+        if choice == '1':
+            initialize_repository(repo_path, encryption_type, rsh_command)
+        elif choice == 'E':
+            break
+        else:
+            print("Invalid option. Please try again.")
+
+def initialize_repository(repo_path, encryption_type, rsh_command):
+    """Initialize a Borg repository with specified options."""
+    if repo_path == "<no default set>":
+        print("Repository path is not set in the configuration.")
+        return
+
+    # Prompt for optional settings
+    encryption = input(f"Enter encryption type (default: {encryption_type}): ") or encryption_type
+    make_parent_dirs = input("Create parent directories if not existing with '--make-parent-dirs'? (Y/N): ").upper() == 'Y'
+    append_only = input("Make repository append-only with '--append-only'? (Y/N): ").upper() == 'Y'
+    storage_quota = input("Set storage quota (e.g., 5G, leave blank for none): ") or None
+
+    # Construct and run the Borg init command
+    run_init_command(repo_path, encryption, rsh_command, make_parent_dirs, append_only, storage_quota)
+
+def run_init_command(repo_path, encryption, rsh_command, make_parent_dirs, append_only, storage_quota):
+    """Run Borg init command with specified options."""
+    cmd = ['borg', 'init', '--encryption', encryption, repo_path]
+    if make_parent_dirs:
+        cmd.append('--make-parent-dirs')
+    if append_only:
+        cmd.append('--append-only')
+    if storage_quota:
+        cmd.extend(['--storage-quota', storage_quota])
+
+    # Set environment variables for Borg, including BORG_RSH if needed
+    env = os.environ.copy()
+    if rsh_command:
+        env["BORG_RSH"] = rsh_command
+
+    try:
+        result = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env)
+        print(f"Repository initialized successfully:\n{result.stdout}")
+        logging.info(f"Borg init command successful: {result.stdout}")
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Borg init command failed: {e.stderr}")
+        print(f"Error: {e.stderr}")
+
+# Run the submenu directly if the script is called
+if __name__ == "__main__":
+    init_borg_submenu()
 
 # print("(14) key                (Manage repository key)")
 @error_handler
