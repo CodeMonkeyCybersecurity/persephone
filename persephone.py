@@ -943,7 +943,98 @@ if __name__ == "__main__":
 
 # print("(11) extract            (Extract archive contents)")
 @error_handler
+def extract_borg_submenu():
+    """Submenu for Borg extract command with configurable options."""
+    config = load_config()
+    if not config:
+        print("Configuration file not found. Please ensure it exists.")
+        return
 
+    repo_path = config['borg'].get('repo', "<no default set>")
+    archives = config.get('backup', {}).get('archives', [])
+    paths_to_backup = config.get('backup', {}).get('paths_to_backup', [])
+
+    while True:
+        print("\nBorg Extract Submenu")
+        print("Available options:")
+        print("(1) Select Archive to Extract")
+        print("(E) Exit to Main Menu")
+
+        choice = input("Select an option: ").upper()
+        if choice == '1':
+            select_and_extract_archive(repo_path, archives, paths_to_backup)
+        elif choice == 'E':
+            break
+        else:
+            print("Invalid option. Please try again.")
+
+def select_and_extract_archive(repo_path, archives, paths_to_backup):
+    """Prompt user to select an archive and specify extraction details."""
+    print(f"\nRepository Path: {repo_path}")
+    print("Available Archives:")
+    for i, archive in enumerate(archives, start=1):
+        print(f"({i}) {archive}")
+    print("(C) Cancel and Return to Previous Menu")
+
+    archive_choice = input("Choose an archive by number or 'C' to cancel: ").upper()
+    if archive_choice == 'C':
+        return
+    elif archive_choice.isdigit() and 1 <= int(archive_choice) <= len(archives):
+        selected_archive = archives[int(archive_choice) - 1]
+    else:
+        print("Invalid choice.")
+        return
+
+    # Ask user for specific paths to extract or default to entire archive
+    print("Paths to extract:")
+    for i, path in enumerate(paths_to_backup, start=1):
+        print(f"({i}) {path}")
+    print("(A) Extract all paths")
+    path_choice = input("Choose paths by number, 'A' for all, or 'C' to cancel: ").upper()
+
+    if path_choice == 'C':
+        return
+    elif path_choice == 'A':
+        selected_paths = []
+    else:
+        selected_paths = [paths_to_backup[int(i) - 1] for i in path_choice.split(',') if i.isdigit()]
+
+    # Optional flags for extraction
+    progress_flag = input("Show progress with '--progress'? (Y/N): ").upper() == 'Y'
+    dry_run_flag = input("Simulate extraction with '--dry-run'? (Y/N): ").upper() == 'Y'
+    numeric_owner_flag = input("Display numeric owner info with '--numeric-owner'? (Y/N): ").upper() == 'Y'
+    strip_components = input("Remove leading path components with '--strip-components' (enter a number or leave blank): ")
+
+    # Construct and run the Borg extract command
+    run_extract_command(repo_path, selected_archive, selected_paths, 
+                        progress_flag, dry_run_flag, numeric_owner_flag, strip_components)
+
+def run_extract_command(repo_path, archive, paths, progress, dry_run, numeric_owner, strip_components):
+    """Run Borg extract command with specified options."""
+    cmd = ['borg', 'extract', repo_path + '::' + archive]
+    
+    if paths:
+        cmd.extend(paths)
+    if progress:
+        cmd.append('--progress')
+    if dry_run:
+        cmd.append('--dry-run')
+    if numeric_owner:
+        cmd.append('--numeric-owner')
+    if strip_components.isdigit():
+        cmd.extend(['--strip-components', strip_components])
+
+    try:
+        result = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        print(f"Extraction successful:\n{result.stdout}")
+        logging.info(f"Borg extract command successful: {result.stdout}")
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Borg extract command failed: {e.stderr}")
+        print(f"Error: {e.stderr}")
+
+# Run the submenu directly if the script is called
+if __name__ == "__main__":
+    extract_borg_submenu()
 # print("(12) info               (Show repository or archive information)")
 @error_handler
 
@@ -1062,7 +1153,7 @@ def main():
                 '8': delete_borg_submenu,    # Delete archive
                 '9': diff_archives,          # Find differences
                 '10': export_tar,            # Export tarball
-                '11': extract_archive,       # Extract archive
+                '11': extract_borg_submenu,  # Extract archive
                 '12': show_info,             # Show repository info
                 '13': init_repository,       # Initialize repository
                 '14': manage_key,            # Manage repository key
