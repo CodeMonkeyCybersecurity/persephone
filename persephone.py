@@ -18,10 +18,16 @@ def check_root_permissions():
         sys.exit(1)
         
 def setup_logging():
-    """Set up logging for the application."""
-    file_handler = logging.FileHandler(LOG_PATH)
+    """Set up logging for the application, with fallback if permissions restrict logging to /var/log."""
+    try:
+        file_handler = logging.FileHandler(LOG_PATH)
+    except PermissionError:
+        # Fallback to a user-writable location
+        fallback_log_path = os.path.expanduser("~/persephone.log")
+        print(f"Warning: Could not write to {LOG_PATH}. Logging to {fallback_log_path} instead.")
+        file_handler = logging.FileHandler(fallback_log_path)
+
     file_handler.setLevel(logging.DEBUG)
-    
     console_handler = logging.StreamHandler()
     console_handler.setLevel(logging.ERROR)
     
@@ -30,6 +36,7 @@ def setup_logging():
         format='%(asctime)s - %(levelname)s - %(message)s',
         handlers=[file_handler, console_handler]
     )
+
 
 # Call permission check at the start
 check_root_permissions()
@@ -56,6 +63,22 @@ def error_handler(func):
             logging.error(f"An unexpected error occurred: {e}")
             print(f"An error occurred: {e}")
     return wrapper
+
+@error_handler
+def validate_or_create_config():
+    """Check if configuration file exists, prompt to create if missing."""
+    if not os.path.exists(CONFIG_PATH):
+        print(f"Configuration file not found at {CONFIG_PATH}.")
+        create = input("Would you like to create a new configuration file? (y/n): ").strip().lower()
+        if create == 'y':
+            create_yaml_config()
+        else:
+            print("Configuration file is required to proceed.")
+            sys.exit(1)
+
+# Validate or create config file if necessary
+validate_or_create_config()
+
 
 # Main menu for selecting commands
 @error_handler
@@ -95,6 +118,9 @@ def display_menu():
     print("(22) upgrade            (Upgrade repository format)")
     print("(23) with-lock          (Run user command with lock held)")
     print("(24) import-tar         (Create a backup archive from a tarball)")
+
+    # Prompt for user input based on the displayed menu
+    return input("Select an option: ").strip().upper()
 
 # Mapping for Borg command functions
 @error_handler
