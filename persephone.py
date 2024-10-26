@@ -439,7 +439,12 @@ def add_borg_to_crontab(config):
 # print("(1) benchmark           (Benchmark command)")
 @error_handler
 def benchmark_submenu():
-    """Submenu for selecting the borg benchmark options and subcommands."""
+    """Submenu for Borg benchmark options."""
+    config = load_config()  # Load configuration values
+    if not config:
+        print("Configuration file not found. Please ensure it exists.")
+        return
+        
     options = {
         '1': {'label': 'CRUD (Create, Read, Update, Delete)', 'action': lambda: run_borg_command(['borg', 'benchmark', 'crud'])},
         # Additional benchmark subcommands can go here if needed.
