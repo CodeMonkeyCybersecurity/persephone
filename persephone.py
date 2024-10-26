@@ -465,41 +465,6 @@ try:
     else:
         raise FileNotFoundError(f"SSH key not found at {ssh_key_path}")
 except Exception as e:
-
-try:
-    tmp_dir = "/home/henry/tmp"
-    
-    # Check if /home/henry/tmp exists
-    if os.path.exists(tmp_dir):
-        # Run df -h to check disk space
-        result = subprocess.run(['df', '-h', tmp_dir], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        
-        if result.returncode == 0:
-            output = result.stdout
-            logging.info(f"Disk space check for {tmp_dir}:\n{output}")
-            print(f"Disk space check for {tmp_dir}:\n{output}")
-            
-            # Set TMPDIR if the directory exists and the command executed successfully
-            os.environ["TMPDIR"] = tmp_dir
-            logging.info(f"TMPDIR set to {tmp_dir}")
-        else:
-            logging.error(f"Error checking disk space: {result.stderr}")
-            print(f"Error: Disk space check failed. {result.stderr}")
-    else:
-        raise FileNotFoundError(f"Temporary directory {tmp_dir} does not exist")
-    
-except Exception as e:
-    logging.error(f"Failed to set TMPDIR: {e}")
-    print(f"Error: Could not set TMPDIR. {e}")
-
-try:
-    ssh_key_path = os.path.expanduser("~/.ssh/id_ed25519")
-    if os.path.exists(ssh_key_path):
-        os.environ["BORG_RSH"] = f"ssh -i {ssh_key_path}"
-        logging.info(f"BORG_RSH set to use SSH key: {ssh_key_path}")
-    else:
-        raise FileNotFoundError(f"SSH key not found at {ssh_key_path}")
-except Exception as e:
     logging.error(f"Failed to set BORG_RSH: {e}")
     print(f"Error: Could not set BORG_RSH. {e}")
 
