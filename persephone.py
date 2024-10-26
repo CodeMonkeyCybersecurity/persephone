@@ -382,11 +382,19 @@ def create_yaml_config():
     # Get backup settings
     paths_to_backup = input(f"Enter the directories to back up (comma-separated, default: {','.join(config['backup']['paths_to_backup'])}): ")
     config['backup']['paths_to_backup'] = paths_to_backup.split(',') if paths_to_backup else config['backup']['paths_to_backup']
-    
+
+    #Exclude patterns
     exclude_patterns = input(f"Enter exclude patterns (comma-separated, default: {','.join(config['backup']['exclude_patterns'])}): ")
     config['backup']['exclude_patterns'] = exclude_patterns.split(',') if exclude_patterns else config['backup']['exclude_patterns']
-    
+
+    # Compression
     config['backup']['compression'] = input(f"Enter the compression method (e.g., lz4, zstd, default: {config['backup']['compression']}): ") or config['backup']['compression']
+
+    # Get prune settings
+    config['backup']['prune']['daily'] = int(input(f"Enter the number of daily archives to keep (default: {config['backup']['prune']['daily']}): ") or config['backup']['prune']['daily'])
+    config['backup']['prune']['weekly'] = int(input(f"Enter the number of weekly archives to keep (default: {config['backup']['prune']['weekly']}): ") or config['backup']['prune']['weekly'])
+    config['backup']['prune']['monthly'] = int(input(f"Enter the number of monthly archives to keep (default: {config['backup']['prune']['monthly']}): ") or config['backup']['prune']['monthly'])
+    config['backup']['prune']['yearly'] = int(input(f"Enter the number of yearly archives to keep (default: {config['backup']['prune']['yearly']}): ") or config['backup']['prune']['yearly'])
 
     # Save the configuration to YAML
     save_config(config)
@@ -481,54 +489,7 @@ except Exception as e:
     logging.error(f"Failed to set BORG_RSH: {e}")
     print(f"Error: Could not set BORG_RSH. {e}")
 
-# Edit YAML menu
-@error_handler
-def edit_yaml_menu(config):
-    """Display YAML editing options."""
-    while True:
-        print("\nEditing existing YAML file. What would you like to edit?")
-        print("(0) Compression method (eg. lz4, zstd. Default is zstd)")
-        print("(1) Enter the encryption type (e.g., repokey, none)")
-        print("(2) Borg repository path (e.g., user@backup-server:/path/to/repo. You must make sure this exists and is available prior to running a backup)")
-        print("(3) Enter the directories to back up (comma-separated, default is: /etc,/var,/home,/mnt,/root,/opt)")
-        print("(4) Enter exclude patterns (comma-separated, default is: home/*/.cache/*,var/tmp/*)")
-        print("(5) Prune settings (comma-separated in format d,w,m,y. Default is 30,0,0,0)")
-        print("(6) Edit with nano")
-        print("(7) Return to main Menu")
-        print("(E) (E)xit")
-        
-        choice = input("Select an option: ").upper()
 
-        if choice == '0':
-            config['backup']['compression'] = input("Enter the compression method (e.g., lz4, zstd, default is zstd): ")
-            save_config(config)
-        elif choice == '1':
-            config['borg']['encryption'] = input("Enter the encryption type (e.g., repokey, none): ")
-            save_config(config)
-        elif choice == '2':
-            config['borg']['repo'] = input("Enter the Borg repository path (e.g., user@backup-server:/path/to/repo): ")
-            save_config(config)
-        elif choice == '3':
-            config['backup']['paths_to_backup'] = (input(f"Enter the directories to back up (comma-separated, default: /etc,/var,/home,/mnt,/root,/opt): ") or "/etc,/var,/home,/mnt,/root,/opt").split(',')
-            config['backup']['exclude_patterns'] = (input(f"Enter exclude patterns (comma-separated, default: home/*/.cache/*,var/tmp/*): ") or "home/*/.cache/*,var/tmp/*").split(',')
-            save_config(config)
-        elif choice == '5':
-            prune_settings = input("Enter prune settings (comma-separated in format d,w,m,y. Default is 30,0,0,0): ").split(',')
-            config['backup']['prune'] = {
-                'daily': prune_settings[0],
-                'weekly': prune_settings[1],
-                'monthly': prune_settings[2],
-                'yearly': prune_settings[3]
-            }
-            save_config(config)
-        elif choice == '6':
-            os.system(f"nano {CONFIG_PATH}")  # Open the YAML file with nano for manual editing
-        elif choice == '7':
-            break  # Return to the main menu
-        elif choice == 'E':
-            exit_program()
-        else:
-            print("Invalid option. Please try again.")
 
 
 # print("(7) debug               (Debugging command)")
@@ -586,7 +547,6 @@ def edit_yaml_menu(config):
 @error_handler
 
 # OTHER FUNCTIONS
-@error_handler
 
 # Modify the repository_options_menu function to show success/failure
 @error_handler
