@@ -765,25 +765,6 @@ def run_delete_command(repo_path, archive=None, force_flag='', stats_flag=''):
         logging.error(f"Borg delete command failed: {e.stderr}")
         print(f"Error: {e.stderr}")
 
-# Integrate delete submenu into the main menu
-def integrate_delete_into_main():
-    while True:
-        print("\nMain Menu")
-        print("(D) Delete Submenu")
-        print("(E) Exit Program")
-        
-        choice = input("Select an option: ").upper()
-        if choice == 'D':
-            delete_borg_submenu()
-        elif choice == 'E':
-            print("Exiting program.")
-            break
-        else:
-            print("Invalid option. Please try again.")
-
-if __name__ == "__main__":
-    integrate_delete_into_main()  # Updated call to match the function name
-
 # print("(9) diff                (Find differences in archive contents)")
 @error_handler
 def diff_borg_submenu():
@@ -877,25 +858,6 @@ def run_diff_command(repo_path, archive1, archive2, sort_option='', numeric_owne
         logging.error(f"Borg diff command failed: {e.stderr}")
         print(f"Error: {e.stderr}")
 
-# Integrate diff submenu into the main menu
-def integrate_diff_into_main():
-    while True:
-        print("\nMain Menu")
-        print("(D) Diff Submenu")
-        print("(E) Exit Program")
-        
-        choice = input("Select an option: ").upper()
-        if choice == 'D':
-            diff_borg_submenu()
-        elif choice == 'E':
-            print("Exiting program.")
-            break
-        else:
-            print("Invalid option. Please try again.")
-
-if __name__ == "__main__":
-    integrate_diff_into_main()
-
 # print("(10) export-tar         (Create tarball from archive)")
 @error_handler
 # Export-Tar submenu
@@ -981,24 +943,6 @@ def run_export_tar_command(repo_path, archive, tarball_name, tar_filter_option, 
         logging.error(f"Borg export-tar command failed: {e.stderr}")
         print(f"Error: {e.stderr}")
 
-# Integrate export-tar submenu into the main menu
-def integrate_export_tar_into_main():
-    while True:
-        print("\nMain Menu")
-        print("(T) Export-Tar Submenu")
-        print("(E) Exit Program")
-        
-        choice = input("Select an option: ").upper()
-        if choice == 'T':
-            export_tar_borg_submenu()
-        elif choice == 'E':
-            print("Exiting program.")
-            break
-        else:
-            print("Invalid option. Please try again.")
-
-if __name__ == "__main__":
-    integrate_export_tar_into_main()
 
 # print("(11) extract            (Extract archive contents)")
 @error_handler
