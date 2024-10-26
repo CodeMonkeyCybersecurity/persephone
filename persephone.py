@@ -258,9 +258,6 @@ def display_menu():
     print("(23) with-lock          (Run user command with lock held)")
     print("(24) import-tar         (Create a backup archive from a tarball)")
 
-    # Prompt for user input based on the displayed menu
-    return input("Select an option: ").strip().upper()
-
 # print("(H) Show (H)elp")
 @error_handler
 def show_borg_help():
