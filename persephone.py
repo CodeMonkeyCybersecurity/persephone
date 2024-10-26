@@ -2237,30 +2237,30 @@ def main():
                 'N': run_borg_backup,
                 'A': add_borg_to_crontab,
                 'E': exit_program,
-                '1': benchmark_submenu,      # Example function to run the benchmark
-                '2': break_lock_command,     # Example function to break repository locks
-                '3': check_repo,             # Verify repository
-                '4': borg_compact,           # Compact segment files
-                '5': create_yaml_config,     # Config setup
-                '6': create_backup,          # Create backup
-                '7': debug_borg_submenu,     # Debugging
-                '8': delete_borg_submenu,    # Delete archive
-                '9': diff_archives,          # Find differences
-                '10': export_tar,            # Export tarball
-                '11': extract_borg_submenu,  # Extract archive
-                '12': info_borg_submenu,     # Show repository info
-                '13': init_borg_submenu,     # Initialize repository
-                '14': key_borg_submenu,      # Manage repository key
-                '15': list_contents,         # List repository contents
-                '16': mount_repository,      # Mount repository
-                '17': prune_archives,        # Prune archives
-                '18': recreate_archives,     # Re-create archives
-                '19': rename_archive,        # Rename archive
-                '20': serve_repository,      # Start server process
-                '21': unmount_repository,    # Umount repository
-                '22': upgrade_format,        # Upgrade format
-                '23': with_lock,             # Run command with lock held
-                '24': import_tar,            # Import tar to archive
+                '1': benchmark_submenu,        # Example function to run the benchmark
+                '2': break_lock_command,       # Example function to break repository locks
+                '3': check_repo,               # Verify repository
+                '4': borg_compact,             # Compact segment files
+                '5': create_yaml_config,       # Config setup
+                '6': create_backup,            # Create backup
+                '7': debug_borg_submenu,       # Debugging
+                '8': delete_borg_submenu,      # Delete archive
+                '9': diff_archives,            # Find differences
+                '10': export_tar,              # Export tarball
+                '11': extract_borg_submenu,    # Extract archive
+                '12': info_borg_submenu,       # Show repository info
+                '13': init_borg_submenu,       # Initialize repository
+                '14': key_borg_submenu,        # Manage repository key
+                '15': list_borg_submenu,       # List repository contents
+                '16': mount_borg_submenu,      # Mount repository
+                '17': prune_borg_submenu,      # Prune archives
+                '18': recreate_borg_submenu,   # Re-create archives
+                '19': rename_borg_submenu,     # Rename archive
+                '20': serve_borg_submenu,      # Start server process
+                '21': unmount_borg_submenu,    # Umount repository
+                '22': upgrade_borg_submenu,    # Upgrade format
+                '23': with_lock_borg_submenu,  # Run command with lock held
+                '24': import_tar_borg_submenu, # Import tar to archive
             }
     
             if choice in command_map:
