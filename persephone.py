@@ -261,42 +261,6 @@ def display_menu():
     # Prompt for user input based on the displayed menu
     return input("Select an option: ").strip().upper()
 
-# Mapping for Borg command functions
-@error_handler
-def handle_borg_command(choice):
-    """Run the appropriate Borg command based on user input."""
-    command_map = {
-        '1': ['borg', 'benchmark'],
-        '2': ['borg', 'break-lock'],
-        '3': ['borg', 'check'],
-        '4': ['borg', 'compact'],
-        '5': ['borg', 'config'],
-        '6': ['borg', 'create'],  # Add more arguments as necessary
-        '7': ['borg', 'debug'],
-        '8': ['borg', 'delete'],
-        '9': ['borg', 'diff'],
-        '10': ['borg', 'export-tar'],
-        '11': ['borg', 'extract'],
-        '12': ['borg', 'info'],
-        '13': ['borg', 'init'],
-        '14': ['borg', 'key'],
-        '15': ['borg', 'list'],
-        '16': ['borg', 'mount'],
-        '17': ['borg', 'prune'],
-        '18': ['borg', 'recreate'],
-        '19': ['borg', 'rename'],
-        '20': ['borg', 'serve'],
-        '21': ['borg', 'umount'],
-        '22': ['borg', 'upgrade'],
-        '23': ['borg', 'with-lock'],
-        '24': ['borg', 'import-tar']
-    }
-    
-    if choice in command_map:
-        run_borg_command(command_map[choice])
-    else:
-        print("Invalid command choice.")
-
 # print("(H) Show (H)elp")
 @error_handler
 def show_borg_help():
