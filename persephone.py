@@ -644,38 +644,51 @@ def clear_screen():
     """Clear the terminal screen."""
     os.system('clear')
 
-# Main program loop
+# Main program loop with command mapping
 @error_handler
 def main():
-    try:
-        while True:
-            clear_screen()
-            display_menu()
-            choice = input("Select an option or Borg command number: ").upper()
-    
-            if choice == 'M':
-                display_menu()
-            elif choice == 'H':
-                show_borg_help()
-            elif choice == 'N':
-                print("Running backup now...")
-                config = load_config()
-                if config:
-                    run_borg_backup(config)  # Run the backup
-                else:
-                    print("Error: No valid configuration found.")
-            elif choice == 'A':  # Automate backup option
-                print("Automating backup by adding it to crontab...")
-                config = load_config()  # Load the Borg configuration
-                if config:
-                    add_borg_to_crontab(config)  # Call the function to automate backups
-                else:
-                    print("Error: No valid configuration found.")
-            elif choice == 'E':
-                print("Exiting program...")
-                exit_program()
-            else:
-                handle_borg_command(choice)
+    while True:
+        clear_screen()
+        display_menu()
+        choice = input("Select an option or Borg command number: ").upper()
+        
+        command_map = {
+            'M': display_menu,
+            'H': show_borg_help,
+            'N': run_borg_backup_now,
+            'A': automate_backup_crontab,
+            'E': exit_program,
+            '1': benchmark_command,      # Example function to run the benchmark
+            '2': break_lock_command,     # Example function to break repository locks
+            '3': check_repository,       # Verify repository
+            '4': compact_repository,     # Compact segment files
+            '5': create_yaml_config,     # Config setup
+            '6': create_borg_backup,     # Create backup
+            '7': debug_command,          # Debugging
+            '8': delete_archive,         # Delete archive
+            '9': diff_archives,          # Find differences
+            '10': export_tar,            # Export tarball
+            '11': extract_archive,       # Extract archive
+            '12': show_info,             # Show repository info
+            '13': init_repository,       # Initialize repository
+            '14': manage_key,            # Manage repository key
+            '15': list_contents,         # List repository contents
+            '16': mount_repository,      # Mount repository
+            '17': prune_archives,        # Prune archives
+            '18': recreate_archives,     # Re-create archives
+            '19': rename_archive,        # Rename archive
+            '20': serve_repository,      # Start server process
+            '21': unmount_repository,    # Umount repository
+            '22': upgrade_format,        # Upgrade format
+            '23': with_lock,             # Run command with lock held
+            '24': import_tar,            # Import tar to archive
+        }
+
+        if choice in command_map:
+            command_map[choice]()  # Call the function mapped to the choice
+        else:
+            print("Invalid option. Please try again.")
+
     except KeyboardInterrupt:
         print("\nProgram interrupted. Exiting gracefully.")
         exit()
