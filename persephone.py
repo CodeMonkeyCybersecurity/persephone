@@ -346,6 +346,51 @@ def borg_compact():
         submenu_handler()
         
 # print("(5) config              (Get and set configuration values)")
+# Required configuration keys and their subkeys
+REQUIRED_KEYS = {
+    'borg': ['repo', 'passphrase', 'encryption', 'rsh'],
+    'backup': ['paths_to_backup', 'exclude_patterns', 'compression', 'prune']
+}
+
+def validate_yaml_config():
+    """Validate the YAML configuration file to ensure all required values are present."""
+    if not os.path.exists(CONFIG_PATH):
+        logging.error("Configuration file does not exist at the specified path.")
+        print(f"Error: Configuration file not found at {CONFIG_PATH}. Please create it first.")
+        return False
+    
+    try:
+        # Load the YAML file
+        with open(CONFIG_PATH, 'r') as file:
+            config = yaml.safe_load(file)
+
+        # Check for required keys and subkeys
+        missing_keys = []
+        for section, keys in REQUIRED_KEYS.items():
+            if section not in config:
+                missing_keys.append(section)
+            else:
+                for key in keys:
+                    if key not in config[section]:
+                        missing_keys.append(f"{section}.{key}")
+
+        # If there are missing keys, log and print the details
+        if missing_keys:
+            logging.error(f"Missing configuration values: {', '.join(missing_keys)}")
+            print(f"Error: The configuration is missing the following required values:\n - " +
+                  "\n - ".join(missing_keys))
+            return False
+
+        # All keys are accounted for
+        logging.info("Configuration file validated successfully, all values are accounted for.")
+        print("Configuration file is complete and validated.")
+        return True
+
+    except yaml.YAMLError as e:
+        logging.error(f"Error loading configuration file: {e}")
+        print(f"Error: Could not load configuration file due to a YAML error. {e}")
+        return False
+
 @error_handler
 def create_yaml_config():
     """Create the YAML config file at {CONFIG_PATH} with default values.
@@ -427,69 +472,68 @@ def save_config(config):
 # print("(6) create              (Create backup)")
 @error_handler
 def create_borg_repository(config):
-    """Initialize a new Borg repository."""
+    """Create a new Borg backup based on the configuration values."""
+    while not validate_yaml_config():
+        retry = input("Configuration is incomplete or invalid. Would you like to go back to configure it? (Y/N): ").strip().lower()
+        if retry == 'y':
+            create_yaml_config()  # Call the configuration setup
+            config = load_config()  # Reload the updated config
+        else:
+            print("Exiting. Please update the configuration file and try again.")
+            return False  # Exit if user chooses not to retry
+            
     try:
-        repo = config['borg']['repo']
-        passphrase = config['borg']['passphrase']
-        
-        # Set up environment for Borg init
+        # Retrieve Borg configurations
+        repo = config['borg'].get('repo')
+        passphrase = config['borg'].get('passphrase')
+        encryption_type = config['borg'].get('encryption', 'repokey')  # Default to 'repokey' if not set
+        rsh = config['borg'].get('rsh')  # Optional SSH command for Borg RSH
+
+        # Set up environment for Borg with passphrase and RSH if provided
         env = os.environ.copy()
         env['BORG_PASSPHRASE'] = passphrase
-        
-        # Initialize the repository with encryption if set
-        encryption_type = config['borg'].get('encryption', 'repokey')
+        if rsh:
+            env['BORG_RSH'] = rsh  # Set the custom RSH command if specified
 
-        # Run Borg init command
+        # Check disk space in temporary directory
+        tmp_dir = "/tmp"
+        if os.path.exists(tmp_dir):
+            result = subprocess.run(['df', '-h', tmp_dir], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            if result.returncode == 0:
+                output = result.stdout
+                logging.info(f"Disk space check for {tmp_dir}:\n{output}")
+                print(f"Disk space check for {tmp_dir}:\n{output}")
+                env["TMPDIR"] = tmp_dir  # Set TMPDIR in the environment
+            else:
+                logging.error(f"Error checking disk space: {result.stderr}")
+                print(f"Error: Disk space check failed. {result.stderr}")
+        else:
+            raise FileNotFoundError(f"Temporary directory {tmp_dir} does not exist")
+
+        # Check SSH key for Borg RSH if required
+        ssh_key_path = os.path.expanduser("~/.ssh/id_ed25519")
+        if os.path.exists(ssh_key_path):
+            env["BORG_RSH"] = f"ssh -i {ssh_key_path}"
+            logging.info(f"BORG_RSH set to use SSH key: {ssh_key_path}")
+        else:
+            logging.warning(f"SSH key not found at {ssh_key_path}. RSH will be used as configured.")
+
+        # Run Borg init command to create the repository
         borg_init_cmd = ['borg', 'init', '--encryption', encryption_type, repo]
         result = subprocess.run(borg_init_cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, text=True)
 
         logging.info(f"Repository {repo} created successfully.")
         print(f"Repository {repo} created successfully.")  # Success message
         return True  # Indicate success
+
     except subprocess.CalledProcessError as e:
         logging.error(f"Failed to create Borg repository: {e.stderr}")
         print(f"Error: Failed to create repository {repo}. {e.stderr}")  # Failure message
         return False  # Indicate failure
-
-try:
-    
-    tmp_dir = "/tmp"
-    
-    # Check if /tmp exists
-    if os.path.exists(tmp_dir):
-        # Run df -h to check disk space
-        result = subprocess.run(['df', '-h', tmp_dir], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        
-        if result.returncode == 0:
-            output = result.stdout
-            logging.info(f"Disk space check for {tmp_dir}:\n{output}")
-            print(f"Disk space check for {tmp_dir}:\n{output}")
-            
-            # Set TMPDIR if the directory exists and the command executed successfully
-            os.environ["TMPDIR"] = tmp_dir
-            logging.info(f"TMPDIR set to {tmp_dir}")
-        else:
-            logging.error(f"Error checking disk space: {result.stderr}")
-            print(f"Error: Disk space check failed. {result.stderr}")
-    else:
-        raise FileNotFoundError(f"Temporary directory {tmp_dir} does not exist")
-    
-except Exception as e:
-    logging.error(f"Failed to set TMPDIR: {e}")
-    print(f"Error: Could not set TMPDIR. {e}")
-
-try:
-    ssh_key_path = os.path.expanduser("~/.ssh/id_ed25519")
-    if os.path.exists(ssh_key_path):
-        os.environ["BORG_RSH"] = f"ssh -i {ssh_key_path}"
-        logging.info(f"BORG_RSH set to use SSH key: {ssh_key_path}")
-    else:
-        raise FileNotFoundError(f"SSH key not found at {ssh_key_path}")
-except Exception as e:
-    logging.error(f"Failed to set BORG_RSH: {e}")
-    print(f"Error: Could not set BORG_RSH. {e}")
-
-
+    except Exception as e:
+        logging.error(f"An error occurred during repository creation: {e}")
+        print(f"Error: {e}")
+        return False
 
 
 # print("(7) debug               (Debugging command)")
