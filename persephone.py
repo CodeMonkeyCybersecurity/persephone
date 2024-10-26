@@ -839,6 +839,107 @@ if __name__ == "__main__":
 
 # print("(10) export-tar         (Create tarball from archive)")
 @error_handler
+# Export-Tar submenu
+def export_tar_borg_submenu():
+    """Present a submenu for Borg export-tar operations."""
+    config = load_config()  # Load configuration values
+    if not config:
+        print("Configuration file not found. Please ensure the configuration file exists and try again.")
+        return
+
+    repo_path = config.get('borg', {}).get('repo', "<no default set>")
+    archives = config.get('backup', {}).get('archives', [])
+
+    while True:
+        print("\nBorg Export-Tar Submenu")
+        print("This command exports an archive as a tarball.")
+        print("Available options:")
+        print("(1) Export archive as tarball")
+        print("(E) Exit to Main Menu")
+
+        choice = input("Select an option: ").upper()
+
+        if choice == '1':
+            export_archive_as_tarball(repo_path, archives)
+        elif choice == 'E':
+            break
+        else:
+            print("Invalid option. Please try again.")
+
+def export_archive_as_tarball(repo_path, archives):
+    """Prompt user to select an archive and export it as a tarball."""
+    print(f"\nRepository Path: {repo_path}")
+    print("Available Archives:")
+    for i, archive in enumerate(archives, start=1):
+        print(f"({i}) {archive}")
+    print("(C) Cancel and Return to Previous Menu")
+
+    # Prompt for the archive to export
+    archive = select_archive(archives)
+    if not archive:
+        return
+
+    # Tarball name input
+    tarball_name = input("Enter the name for the tarball output file (default: backup.tar.gz): ") or "backup.tar.gz"
+
+    # Optional flags
+    tar_filter = input("Enter the tar filter (e.g., gzip, bzip2, default: gzip): ") or "gzip"
+    progress_flag = input("Display progress with '--progress'? (Y/N): ").upper()
+
+    # Convert user response to actual flags
+    tar_filter_option = f'--tar-filter={tar_filter}'
+    progress_option = '--progress' if progress_flag == 'Y' else ''
+
+    run_export_tar_command(repo_path, archive, tarball_name, tar_filter_option, progress_option)
+
+def select_archive(archives):
+    """Select an archive for export."""
+    while True:
+        print("\nSelect an archive to export:")
+        for i, archive in enumerate(archives, start=1):
+            print(f"({i}) {archive}")
+        print("(C) Cancel and Return to Previous Menu")
+
+        choice = input("Choose an archive by number or 'C' to cancel: ").upper()
+        if choice == 'C':
+            return None
+        elif choice.isdigit() and 1 <= int(choice) <= len(archives):
+            return archives[int(choice) - 1]
+        else:
+            print("Invalid choice. Please try again.")
+
+def run_export_tar_command(repo_path, archive, tarball_name, tar_filter_option, progress_option=''):
+    """Run Borg export-tar command with specified options."""
+    cmd = ['borg', 'export-tar', repo_path, f"::{archive}", tarball_name, tar_filter_option]
+    if progress_option:
+        cmd.append(progress_option)
+
+    try:
+        result = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        print(f"Export successful:\n{result.stdout}")
+        logging.info(f"Borg export-tar command successful: {result.stdout}")
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Borg export-tar command failed: {e.stderr}")
+        print(f"Error: {e.stderr}")
+
+# Integrate export-tar submenu into the main menu
+def main():
+    while True:
+        print("\nMain Menu")
+        print("(T) Export-Tar Submenu")
+        print("(E) Exit Program")
+        
+        choice = input("Select an option: ").upper()
+        if choice == 'T':
+            export_tar_borg_submenu()
+        elif choice == 'E':
+            print("Exiting program.")
+            break
+        else:
+            print("Invalid option. Please try again.")
+
+if __name__ == "__main__":
+    main()
 
 # print("(11) extract            (Extract archive contents)")
 @error_handler
