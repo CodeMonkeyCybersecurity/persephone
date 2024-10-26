@@ -12,7 +12,7 @@ SUBMODULES_DEST = '/usr/local/bin/Persephone'
 # Default configuration template
 default_config = {
     'borg': {
-        'repo': 'henry@ubuntu-backups:/mnt/2TB/ubuntu-redfern',
+        'repo': 'username@hostname:/mnt/default',
         'encryption': 'repokey',
         'passphrase': 'YourSecurePassphrase',
         'rsh': 'ssh -i /path/to/id_ed25519'
