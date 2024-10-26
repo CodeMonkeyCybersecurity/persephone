@@ -432,9 +432,10 @@ def create_borg_repository(config):
         return False  # Indicate failure
 
 try:
-    tmp_dir = "/home/henry/tmp"
     
-    # Check if /home/henry/tmp exists
+    tmp_dir = "/tmp"
+    
+    # Check if /tmp exists
     if os.path.exists(tmp_dir):
         # Run df -h to check disk space
         result = subprocess.run(['df', '-h', tmp_dir], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
