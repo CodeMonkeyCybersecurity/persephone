@@ -1,11 +1,28 @@
 import yaml
+import subprocess
+import socket
+import logging
 import os
+from datetime import datetime
 
-# Define the path for the configuration file
+
+# Define the log file and directory
+LOG_DIR = '/var/log/CodeMonkeyCyber'
+LOG_FILE = f'{LOG_DIR}/Persephone.log'
+
+# Ensure the log directory exists
+os.makedirs(LOG_DIR, exist_ok=True)
+
+# Configure logging
+logging.basicConfig(filename=LOG_FILE, level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Path to the config file
 CONFIG_FILE = '/etc/CodeMonkeyCyber/Persephone/borgConfig.yaml'
 
-# Ensure the directory exists
-os.makedirs(os.path.dirname(CONFIG_FILE), exist_ok=True)
+# Load configuration from YAML file
+def load_config():
+    with open(CONFIG_FILE, 'r') as file:
+        return yaml.safe_load(file)
 
 # Prompt the user for settings
 def get_user_input():
