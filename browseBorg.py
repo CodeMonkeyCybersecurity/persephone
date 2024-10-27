@@ -40,7 +40,7 @@ def extract_from_archive(repo_path, archive_name, extract_path, file_path=None):
 def main():
     # Load configuration
     config = load_config()
-    repo_path = config.get("REPO_PATH")
+    repo_path = config.get("borg", {}).get("repo")
 
     if not repo_path:
         print("Repository path not found in configuration file.")
@@ -57,17 +57,17 @@ def main():
         choice = input("Select an option (1-4): ")
         
         if choice == "1":
-            list_archives(repo_path)
+            list_archives()
         
         elif choice == "2":
             archive_name = input("Enter the archive name: ")
-            show_archive_details(repo_path, archive_name)
+            show_archive_details(, archive_name)
         
         elif choice == "3":
             archive_name = input("Enter the archive name: ")
             extract_path = input("Enter the destination path for extraction: ")
             file_path = input("Enter the specific file or directory path to extract (leave blank for full archive): ")
-            extract_from_archive(repo_path, archive_name, extract_path, file_path if file_path else None)
+            extract_from_archive(, archive_name, extract_path, file_path if file_path else None)
         
         elif choice == "4":
             print("Exiting.")
