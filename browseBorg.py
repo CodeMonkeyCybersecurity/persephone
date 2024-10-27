@@ -57,7 +57,7 @@ def main():
         choice = input("Select an option (1-4): ")
         
         if choice == "1":
-            list_archives()
+            list_archives(repo_path)
         
         elif choice == "2":
             archive_name = input("Enter the archive name: ")
