@@ -1,6 +1,7 @@
 import yaml
 import os
 import logging
+import subprocess
 
 # Define the log file and directory
 LOG_DIR = '/var/log/CodeMonkeyCyber'
@@ -73,6 +74,18 @@ def create_yaml_file():
     
     print(f"Configuration file created successfully at {CONFIG_FILE}. Please review and update as needed.")
 
+# Display YAML content
+def show_yaml():
+    """Ask user if they want to view the YAML configuration file, and display it if confirmed."""
+    view_yaml = input("Would you like to view the YAML configuration file? (y/n): ").strip().lower()
+    if view_yaml == 'y':
+        try:
+            subprocess.run(['cat', CONFIG_FILE])
+        except subprocess.CalledProcessError as e:
+            print("Error displaying YAML file:", e.stderr)
+            logging.error(f"Error displaying YAML file: {e.stderr}")
+
 # Main function
 if __name__ == "__main__":
     create_yaml_file()
+    show_yaml()
