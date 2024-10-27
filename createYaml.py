@@ -38,7 +38,9 @@ def get_user_input():
             'repo': prompt_with_default("Enter the Borg repository path", current_config.get('borg', {}).get('repo')),
             'encryption': prompt_with_default("Enter encryption method", current_config.get('borg', {}).get('encryption')),
             'passphrase': prompt_with_default("Enter your encryption passphrase", current_config.get('borg', {}).get('passphrase')),
-            'rsh': prompt_with_default("Enter the remote shell command", current_config.get('borg', {}).get('rsh'))
+            'rsh': prompt_with_default("Enter the remote shell command", current_config.get('borg', {}).get('rsh')),
+            'archive_name': prompt_with_default("Enter archive name format", current_config.get('borg', {}).get('archive_name', '{hostname}-{timestamp}'))
+
         },
         'backup': {
             'compression': prompt_with_default("Enter compression method", current_config.get('backup', {}).get('compression')),
