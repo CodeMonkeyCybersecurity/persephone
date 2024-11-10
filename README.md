@@ -9,6 +9,9 @@ A universal backup and recovery solution... actually just the mighty borg backup
 ## Prerequisites
 
 - **Borg Backup**: Ensure Borg Backup is installed on your system. Installation instructions can be found on the [official Borg website](https://www.borgbackup.org/).
+- You can check whether Borg Backup is installed by running
+   ```bash
+   borg --version
 
 ### Installation
 1. Clone the repository:
@@ -17,7 +20,7 @@ A universal backup and recovery solution... actually just the mighty borg backup
 
 2.	Navigate to the Project Directory:
    ```bash
-  	cd Persephone
+   cd Persephone
    ```
 
 3. Install the dependencies:
