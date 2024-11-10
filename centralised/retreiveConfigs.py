@@ -3,6 +3,7 @@ import logging
 import paramiko
 import os
 from functools import wraps
+from datetime import datetime
 
 # Configure logging
 logging.basicConfig(filename="/var/log/cybermonkey/persephone_retrieve.log", level=logging.INFO,
@@ -31,7 +32,8 @@ def retrieve_files(target, dest_folder):
     host = target["host"]
     user = target["user"]
     ssh_key_path = target.get("ssh_key_path")
-    files = target.get("files", ["/path/to/rpoKeys", "/path/to/config.yaml"])  # Define paths to retrieve
+    # Define paths to retrieve: repokey and config.yaml files
+    files = target.get("files", ["/path/to/.config/borg/keys/<repo_name>", "/path/to/config.yaml"])
 
     # Set up SSH connection
     ssh = paramiko.SSHClient()
@@ -54,7 +56,12 @@ def retrieve_files(target, dest_folder):
 
 # Main function to run retrievals sequentially
 @error_handler
-def perform_retrievals(config_path, dest_folder):
+def perform_retrievals(config_path):
+    # Set the destination folder with date stamp
+    date_str = datetime.now().strftime("%Y-%m-%d")
+    dest_folder = f"/var/backups/persephone/retrieved_configs/{date_str}"
+    os.makedirs(dest_folder, exist_ok=True)
+    
     config = load_config(config_path)
     backup_targets = config.get("backup_targets", [])
     
@@ -73,14 +80,14 @@ def display_menu():
 
 # Retrieve all configurations
 @error_handler
-def retrieve_all_configs(config_path, dest_folder):
+def retrieve_all_configs(config_path):
     logging.info("Starting retrieval for all clients.")
-    perform_retrievals(config_path, dest_folder)
+    perform_retrievals(config_path)
     print("Retrieval for all clients completed.")
 
 # Retrieve a specific configuration
 @error_handler
-def retrieve_specific_config(config_path, dest_folder):
+def retrieve_specific_config(config_path):
     config = load_config(config_path)
     backup_targets = config.get("backup_targets", [])
     
@@ -91,6 +98,10 @@ def retrieve_specific_config(config_path, dest_folder):
     
     client_choice = int(input("Select a client by number: ")) - 1
     if 0 <= client_choice < len(backup_targets):
+        date_str = datetime.now().strftime("%Y-%m-%d")
+        dest_folder = f"/var/backups/persephone/retrieved_configs/{date_str}"
+        os.makedirs(dest_folder, exist_ok=True)
+        
         target = backup_targets[client_choice]
         retrieve_files(target, dest_folder)
         print(f"Retrieved files from {target['name']} ({target['host']}).")
@@ -100,15 +111,14 @@ def retrieve_specific_config(config_path, dest_folder):
 # Main execution with menu
 def main():
     config_path = "/etc/CodeMonkeyCyber/Persephone/borgConfig.yaml"
-    dest_folder = "/path/to/store/retrieved_files"  # Set your destination folder
 
     while True:
         choice = display_menu()
         
         if choice == "1":
-            retrieve_all_configs(config_path, dest_folder)
+            retrieve_all_configs(config_path)
         elif choice == "2":
-            retrieve_specific_config(config_path, dest_folder)
+            retrieve_specific_config(config_path)
         elif choice == "3":
             print("Exiting.")
             break
