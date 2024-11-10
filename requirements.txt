@@ -1,3 +1,2 @@
 paramiko
 pyyaml
-borgbackup
