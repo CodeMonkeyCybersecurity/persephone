@@ -18,12 +18,11 @@ A universal backup and recovery solution... actually just the mighty borg backup
 2.	Navigate to the Project Directory:
    ```bash
   	cd Persephone
-```
+   ```
 
-
-4. Install the dependencies:
+3. Install the dependencies:
    ```bash
    pip install -r requirements.txt 
 
-3. Create your configuration file, config.yaml, to define your backup targets, encryption type, and repository paths.
+4. Create your configuration file, config.yaml, to define your backup targets, encryption type, and repository paths.
 
