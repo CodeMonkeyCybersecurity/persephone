@@ -29,3 +29,21 @@ A universal backup and recovery solution... actually just the mighty borg backup
 
 4. Create your configuration file, config.yaml, to define your backup targets, encryption type, and repository paths.
 
+
+
+## Complaints, compliments, confusion and other communications:
+
+Secure email: [git@cybermonkey.net.au](mailto:git@cybermonkey.net.au)  
+
+Website: [cybermonkey.net.au](https://cybermonkey.net.au)
+
+```
+     ___         _       __  __          _
+    / __|___  __| |___  |  \/  |___ _ _ | |_____ _  _
+   | (__/ _ \/ _` / -_) | |\/| / _ \ ' \| / / -_) || |
+    \___\___/\__,_\___| |_|  |_\___/_||_|_\_\___|\_, |
+                  / __|  _| |__  ___ _ _         |__/
+                 | (_| || | '_ \/ -_) '_|
+                  \___\_, |_.__/\___|_|
+                      |__/
+```
