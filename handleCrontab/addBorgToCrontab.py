@@ -1,3 +1,5 @@
+import subprocess
+
 def addBorgToCrontab(config):
     """Add Borg backup to crontab with error handling."""
     try:
