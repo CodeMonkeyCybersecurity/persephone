@@ -6,9 +6,11 @@ Submodules which are used across scripts. This allows our code to be more modula
 
 from utils.checkSudo import checkSudo
 
+# Call the function from checkSudo.py early in the script
+check_sudo()
+
 def main():
     """Main function to execute the script logic."""
-    check_sudo()  # Call the function from checkSudo.py
     print("Main script logic goes here.")
 
 if __name__ == "__main__":
