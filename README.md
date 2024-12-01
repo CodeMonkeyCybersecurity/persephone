@@ -30,6 +30,21 @@ A universal backup and recovery solution... actually just the mighty borg backup
 4. Create your configuration file, config.yaml, to define your backup targets, encryption type, and repository paths.
 
 
+### Calling the error logger in a main script
+```
+from error_logger import ErrorLogger
+
+# Initialize the logger
+logger = ErrorLogger("app_errors.log")
+
+try:
+    # Code that may raise an exception
+    1 / 0
+except Exception as e:
+    # Log the error with a custom message
+    logger.log_error("Division by zero error occurred.")
+```
+
 
 ## Complaints, compliments, confusion and other communications:
 
