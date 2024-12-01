@@ -11,11 +11,6 @@ def check_sudo():
     else:
         print("\033[32m✔ Running as root.\033[0m")
 
-def main():
-    """Main function to execute the script logic."""
-    check_sudo()
-    # Add additional logic here if needed
-    print("Main script logic goes here.")
-
+# Only execute check_sudo automatically if this script is run directly
 if __name__ == "__main__":
-    main()
+    check_sudo()
