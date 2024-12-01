@@ -1,6 +1,10 @@
 import yaml
 import os
 import logging
+from utils.checkSudo import checkSudo
+
+# Ensure the script is running as root
+checkSudo()
 
 # Paths
 CONFIG_FILE = '/etc/CodeMonkeyCyber/Persephone/borgConfig.yaml'
@@ -8,8 +12,6 @@ LOG_DIR = '/var/log/CodeMonkeyCyber'
 LOG_FILE = f'{LOG_DIR}/Persephone.log'
 SUBMODULES_SOURCE = './submodules'
 SUBMODULES_DEST = '/usr/local/bin/Persephone'
-
-from utils.checkSudo import checkSudo
 
 # Default configuration template
 default_config = {
@@ -73,7 +75,6 @@ def init_borg_repo():
 
 # Main function to run the script
 def main():
-    checkSudo()
     load_config()
     init_borg_repo()
 
