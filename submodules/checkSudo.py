@@ -3,7 +3,7 @@
 import os
 import sys
 
-def check_sudo():
+def checkSudo():
     """Check if the script is running as root."""
     if os.geteuid() != 0:
         print("\033[31m✘ This script must be run as root. Please use sudo.\033[0m")
@@ -13,4 +13,4 @@ def check_sudo():
 
 # Only execute check_sudo automatically if this script is run directly
 if __name__ == "__main__":
-    check_sudo()
+    checkSudo()
