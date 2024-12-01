@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Function to set up notifications
 setup_notifications() {
     read -p "Enter your email address for notifications: " email
