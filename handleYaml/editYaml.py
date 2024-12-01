@@ -6,7 +6,6 @@ import sys
 
 # Add the parent directory of 'utils' to the Python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
-
 from utils.checkSudo import checkSudo
 checkSudo()
 
