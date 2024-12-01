@@ -1,14 +1,21 @@
-#!/bin/bash
-# checkSudo.sh
+#!/usr/bin/env python3
 
-check_sudo() {
-  if [[ $EUID -ne 0 ]]; then
-    echo -e "\e[31m✘ This script must be run as root. Please use sudo.\e[0m"
-    exit 1
-  else
-    echo -e "\e[32m✔ Running as root.\e[0m"
-  fi
-}
+import os
+import sys
 
-# Call the function automatically when sourced
-check_sudo
+def check_sudo():
+    """Check if the script is running as root."""
+    if os.geteuid() != 0:
+        print("\033[31m✘ This script must be run as root. Please use sudo.\033[0m")
+        sys.exit(1)
+    else:
+        print("\033[32m✔ Running as root.\033[0m")
+
+def main():
+    """Main function to execute the script logic."""
+    check_sudo()
+    # Add additional logic here if needed
+    print("Main script logic goes here.")
+
+if __name__ == "__main__":
+    main()
