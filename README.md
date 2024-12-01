@@ -1,3 +1,5 @@
+## Only the scripts in the main directory are tested and confirmed to be good to use. Use the rest at your own risk; these are in the various stages of drafting and development.
+
 A universal backup and recovery solution... actually just the mighty borg backup all dressed up
 
 # Persephone: Enhanced Borg Backup Wrapper
