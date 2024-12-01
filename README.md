@@ -12,24 +12,29 @@ A universal backup and recovery solution... actually just the mighty borg backup
 
 - **Borg Backup**: Ensure Borg Backup is installed on your system. Installation instructions can be found on the [official Borg website](https://www.borgbackup.org/).
 - You can check whether Borg Backup is installed by running
-   ```bash
+   ```
    borg --version
-
+   ```
+   
 ### Installation
 1. Clone the repository:
-   ```bash
+   ```
    git clone https://github.com/CodeMonkeyCybersecurity/Persephone.git
 
 2.	Navigate to the Project Directory:
-   ```bash
+   ```
    cd Persephone
    ```
 
 3. Install the dependencies:
-   ```bash
-   pip install -r requirements.txt 
+   ```
+   pip install -r requirements.txt
+   ```
 
-4. Create your configuration file, config.yaml, to define your backup targets, encryption type, and repository paths.
+4. Create your configuration file, config.yaml, to define your backup targets, encryption type, and repository paths by running
+   ```
+   python3 getStarted.py
+   ```
 
 
 ### Calling the error logger in a main script
