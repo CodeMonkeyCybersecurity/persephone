@@ -4,7 +4,7 @@ Submodules which are used across scripts. This allows our code to be more modula
 ```
 #!/usr/bin/env python3
 
-from checkSudo import checkSudo
+from submodules.checkSudo import checkSudo
 
 def main():
     """Main function to execute the script logic."""
