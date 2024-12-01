@@ -9,7 +9,7 @@ LOG_FILE = f'{LOG_DIR}/Persephone.log'
 SUBMODULES_SOURCE = './submodules'
 SUBMODULES_DEST = '/usr/local/bin/Persephone'
 
-from submodules.checkSudo import check_sudo
+from utils.checkSudo import check_sudo
 
 # Default configuration template
 default_config = {
