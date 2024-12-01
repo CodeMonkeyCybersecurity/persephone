@@ -3,6 +3,9 @@ import os
 import logging
 import subprocess
 
+from utils.checkSudo import checkSudo
+checkSudo()
+
 # Define the log file and directory
 LOG_DIR = '/var/log/CodeMonkeyCyber'
 LOG_FILE = f'{LOG_DIR}/Persephone.log'
