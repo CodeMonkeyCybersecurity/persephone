@@ -9,6 +9,8 @@ LOG_FILE = f'{LOG_DIR}/Persephone.log'
 SUBMODULES_SOURCE = './submodules'
 SUBMODULES_DEST = '/usr/local/bin/Persephone'
 
+from utils.checkSudo import check_sudo
+
 # Default configuration template
 default_config = {
     'borg': {
@@ -71,6 +73,7 @@ def init_borg_repo():
 
 # Main function to run the script
 def main():
+    checkSudo()
     load_config()
     init_borg_repo()
 
