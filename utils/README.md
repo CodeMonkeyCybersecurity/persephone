@@ -15,5 +15,5 @@ from utils.checkSudo import checkSudo
 # Call the function from checkSudo.py early in the script
 check_sudo()
 
-... rest of your script ...
+# ... rest of your script ...
 ```
