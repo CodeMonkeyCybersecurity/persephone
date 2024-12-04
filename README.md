@@ -10,11 +10,12 @@ A universal backup and recovery solution... actually just the mighty borg backup
 
 ## Prerequisites
 
-- **Borg Backup**: Ensure Borg Backup is installed on your system. Installation instructions can be found on the [official Borg website](https://www.borgbackup.org/).
-- You can check whether Borg Backup is installed by running
+**Borg Backup**: Ensure Borg Backup is installed on your system. Installation instructions can be found on the [official Borg website](https://www.borgbackup.org/).
+You can check whether Borg Backup is installed by running
    ```
    borg --version
    ```
+
    
 ### Installation
 1. Clone the repository:
@@ -51,6 +52,14 @@ except Exception as e:
     # Log the error with a custom message
     logger.log_error("Division by zero error occurred.")
 ```
+
+## Directories and files this will use
+
+CONFIG_FILE = '/etc/CodeMonkeyCyber/Persephone/borgConfig.yaml'
+LOG_DIR = '/var/log/CodeMonkeyCyber'
+LOG_FILE = f'{LOG_DIR}/Persephone.log'
+SUBMODULES_SOURCE = './submodules'
+SUBMODULES_DEST = '/usr/local/bin/Persephone'
 
 
 ## Complaints, compliments, confusion and other communications:
