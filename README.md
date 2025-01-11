@@ -45,27 +45,27 @@ cd persephone
 
 ### 4. Install the dependencies:
 ```
-sudo ./installRestic.sh
+sudo ./installPersephone.sh
 ```
 
 ### 5. On the computer your backing up **to**
 ```
-sudo ./createResticRepoServer.sh
+sudo ./createPersephoneServer.sh
 ```
 
 ### 6. On the computer your backing up **from**
 ```
-sudo ./createResticRepoClient.sh
+sudo ./createPersephoneClient.sh
 ```
 
 ### 7. Create connections between the two computers, so they can talk to each other
 ```
-sudo ./createSSHConnection.sh
+sudo ./createPersephoneConnection.sh
 ```
 
 ### 8. Backup
 ```
-sudo ./createResticBackup.sh
+sudo ./createPersephoneBackup.sh
 ```
 
 
