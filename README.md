@@ -6,63 +6,98 @@ A universal backup and recovery solution... actually just the mighty borg backup
 
 **Persephone** is a Python-based solution designed to simplify and enhance the use of Borg for backups and recovery, providing additional features like centralized management, automated scheduling, and modular configuration.
 
-## Getting Started
+# Getting Started
 
 ## Prerequisites
 
 **Borg Backup**: Ensure Borg Backup is installed on your system. Installation instructions can be found on the [official Borg website](https://www.borgbackup.org/).
 You can check whether Borg Backup is installed by running
-   ```
-   borg --version
-   ```
-
-   
-### Installation
-1. Clone the repository:
-   ```
-   git clone https://github.com/CodeMonkeyCybersecurity/Persephone.git
-
-2.	Navigate to the Project Directory:
-   ```
-   cd Persephone
-   ```
-
-3. Install the dependencies:
-   ```
-   pip install -r requirements.txt
-   ```
-
-4. Create your configuration file, config.yaml, to define your backup targets, encryption type, and repository paths by running
-   ```
-   python3 getStarted.py
-   ```
-
-
-### Calling the error logger in a main script
 ```
-from error_logger import ErrorLogger
-
-# Initialize the logger
-logger = ErrorLogger("app_errors.log")
-
-try:
-    # Code that may raise an exception
-    1 / 0
-except Exception as e:
-    # Log the error with a custom message
-    logger.log_error("Division by zero error occurred.")
+borg --version
 ```
 
-## Directories and files this will use
+## Installation
+### 1. Go to the install directory:
+```
+OPT_DIR='/opt/codeMonkeyCyber'
+PERS_USER=$(whoami)
 
-CONFIG_FILE = '/etc/CodeMonkeyCyber/Persephone/borgConfig.yaml'
-LOG_DIR = '/var/log/CodeMonkeyCyber'
-LOG_FILE = f'{LOG_DIR}/Persephone.log'
-SUBMODULES_SOURCE = './submodules'
-SUBMODULES_DEST = '/usr/local/bin/Persephone'
+# Ensure the directory exists first
+sudo mkdir -p $OPT_DIR
+
+# Change ownership of the directory
+sudo chown -R $PERS_USER:$PERS_USER $OPT_DIR
+
+# Set appropriate permissions (755 for directories, 644 for files)
+sudo find $OPT_DIR -type d -exec chmod 755 {} \;  # Directories
+sudo find $OPT_DIR -type f -exec chmod 644 {} \;  # Files
+
+# Verify directory contents and ownership/permissions
+ls -lah $OPT_DIR
+
+# Change to the directory
+cd $OPT_DIR
+
+# Print the working directory
+pwd  # Verify that the working directory has been updated
+```
+
+### 2. Clone the repository:
+```
+git clone https://github.com/CodeMonkeyCybersecurity/Persephone.git
+```
+
+### 3.	Navigate to the Project Directory:
+```
+cd persephone
+```
+
+### 4. Install the dependencies:
+```
+sudo ./installRestic.sh
+```
+
+### 5. On the computer your backing up **to**
+```
+sudo ./createResticRepoServer.sh
+```
+
+### 6. On the computer your backing up **from**
+```
+sudo ./createResticRepoClient.sh
+```
+
+### 7. Create connections between the two computers, so they can talk to each other
+```
+sudo ./createSSHConnection.sh
+```
+
+### 8. Backup
+```
+sudo ./createResticBackup.sh
+```
 
 
-## Complaints, compliments, confusion and other communications:
+## Relevant directories and files:
+```
+# Directories
+OPT_DIR='/opt/codeMonkeyCyber'
+SRV_DIR='/srv/codeMonkeyCyber'
+INSTALL_DIR='/opt/codeMonkeyCyber/persephone'
+
+# Configurations
+CONFIG_FILE='/etc/codeMonkeyCyber/persephone/persephone.conf'
+
+# Logging
+LOG_DIR='/var/log/codeMonkeyCyber'
+LOG_FILE=f'{LOG_DIR}/persephone.log'
+
+# Scripts
+SUBMODULES_DEST='/usr/local/bin/persephone'
+```
+
+
+## Complaints, compliments, confusion:
 
 Secure email: [git@cybermonkey.net.au](mailto:git@cybermonkey.net.au)  
 
