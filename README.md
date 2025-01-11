@@ -1,22 +1,9 @@
-## Only the scripts in the main directory are tested and confirmed to be good to use. Use the rest at your own risk; these are in the various stages of drafting and development.
+# Persephone: Enhanced Restic Backup Wrapper
 
-A universal backup and recovery solution... actually just the mighty borg backup all dressed up
-
-# Persephone: Enhanced Borg Backup Wrapper
-
-**Persephone** is a Python-based solution designed to simplify and enhance the use of Borg for backups and recovery, providing additional features like centralized management, automated scheduling, and modular configuration.
-
-# Getting Started
-
-## Prerequisites
-
-**Borg Backup**: Ensure Borg Backup is installed on your system. Installation instructions can be found on the [official Borg website](https://www.borgbackup.org/).
-You can check whether Borg Backup is installed by running
-```
-borg --version
-```
+**Persephone** is a solution designed to simplify and enhance the use of Restic for backups and recovery, providing additional features like centralized management, automated scheduling, and modular configuration.
 
 ## Installation
+
 ### 1. Go to the install directory:
 ```
 OPT_DIR='/opt/codeMonkeyCyber'
@@ -44,7 +31,11 @@ pwd  # Verify that the working directory has been updated
 
 ### 2. Clone the repository:
 ```
-git clone https://github.com/CodeMonkeyCybersecurity/Persephone.git
+git clone https://github.com/CodeMonkeyCybersecurity/persephone.git
+```
+OR 
+```
+gh repo clone CodeMonkeyCybersecurity/persephone
 ```
 
 ### 3.	Navigate to the Project Directory:
