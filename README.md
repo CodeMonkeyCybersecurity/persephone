@@ -50,22 +50,22 @@ sudo ./installPersephone.sh
 
 ### 5. On the computer your backing up **to**
 ```
-sudo ./createPersephoneServer.sh
+./createPersephoneServer.sh
 ```
 
 ### 6. On the computer your backing up **from**
 ```
-sudo ./createPersephoneClient.sh
+./createPersephoneClient.sh
 ```
 
 ### 7. Create connections between the two computers, so they can talk to each other
 ```
-sudo ./createPersephoneConnection.sh
+./createPersephoneConnection.sh
 ```
 
 ### 8. Backup
 ```
-sudo ./createPersephoneBackup.sh
+./createPersephoneBackup.sh
 ```
 
 
