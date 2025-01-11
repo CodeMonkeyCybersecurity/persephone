@@ -2,6 +2,8 @@
 
 **Persephone** is a solution designed to simplify and enhance the use of Restic for backups and recovery, providing additional features like centralized management, automated scheduling, and modular configuration.
 
+This will currently work only on debian-based systems (eg. Ubuntu, Debian, Kali). **Work is ongoing to expand this to MacOS and Windows.**
+
 ## Installation
 
 ### 1. Create the install directory:
