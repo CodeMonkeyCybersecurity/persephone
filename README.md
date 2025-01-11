@@ -31,17 +31,14 @@ cd $OPT_DIR
 pwd  # Verify that the working directory has been updated
 ```
 
-### 2. Clone the repository:
+### 2. & 3. Clone the repository and navigate to the Project Directory
 ```
 git clone https://github.com/CodeMonkeyCybersecurity/persephone.git
+cd persephone
 ```
 OR 
 ```
 gh repo clone CodeMonkeyCybersecurity/persephone
-```
-
-### 3.	Navigate to the Project Directory:
-```
 cd persephone
 ```
 
