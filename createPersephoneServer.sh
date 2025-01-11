@@ -28,9 +28,5 @@ PERS_SRV_USER=$(whoami)
 PERS_SRV_HOSTNAME=$(hostname)
 echo "This server is located at $PERS_SRV_USER@$PERS_SRV_HOSTNAME:/$SRV_DIR"
 echo "It is important you note this down somewhere"
-
-# (Optional) Initialize a default Restic repo. You can comment this out
-# if you prefer to initialize from the client side or with separate script.
-# echo "Initializing Restic repository..."
-# sudo restic -r "${SRV_DIR}/$(hostname)" init
-# echo "Restic repository initialized at ${SRV_DIR}/$(hostname)."
+echo "You will use it when running `./createPersephoneClient.sh`"
+echo "It's also generally a good idea to know where your backups are stored"
