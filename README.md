@@ -47,12 +47,12 @@ cd persephone
 sudo ./installPersephone.sh
 ```
 
-### 5. On the computer your backing up **to**
+### 5. On the computer your backing up to
 ```
 ./createPersephoneServer.sh
 ```
 
-### 6. On the computer your backing up **from**
+### 6. On the computer your backing up from
 ```
 ./createPersephoneClient.sh
 ```
