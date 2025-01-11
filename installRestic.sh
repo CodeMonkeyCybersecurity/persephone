@@ -1,25 +1,19 @@
-# install restic
-sudo apt install restic -y
+#!/usr/bin/env bash
+#
+# install_dependencies.sh
 
-# ssh
-sudo ssh-keygen
-sudo ssh-copy-id henry@backup
+set -euo pipefail
 
-# initialise
-sudo restic -r sftp:henry@backup:/srv/restic-repos/$(hostname) init
+# -----------------------------
+# Main Script
+# -----------------------------
+echo "Installing dependencies..."
 
-# backup 
-sudo restic -r sftp:henry@backup:/srv/restic-repos/$(hostname) --verbose backup /root /home /var /etc /srv /usr /opt
+# Update package lists
+sudo apt-get update
 
-read -p "Enter your repository password: " RESTIC_PASS
-echo "$RESTIC_PASS" | sudo tee /root/.restic-password > /dev/null
-sudo chmod 600 /root/.restic-password
-RESTIC_REPO="sftp:henry@backup:/srv/restic-repos/$(hostname)"
-echo "$RESTIC_REPO" | sudo tee /root/.restic-repo > /dev/null
-sudo chmod 600 /root/.restic-repo
+# Install Restic
+echo "Installing Restic..."
+sudo apt-get install -y restic
 
-# run backup
-sudo restic --repository-file /root/.restic-repo --password-file /root/.restic-password --verbose backup /root /home /var /etc /srv /usr /opt
-
-# check snapshots
-sudo restic --repository-file /root/.restic-repo --password-file /root/.restic-password snapshots
+echo "Dependencies installed successfully."
