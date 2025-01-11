@@ -4,7 +4,7 @@
 
 ## Installation
 
-### 1. Go to the install directory:
+### 1. Create the install directory:
 ```
 OPT_DIR='/opt/codeMonkeyCyber'
 PERS_USER=$(whoami)
