@@ -13,7 +13,6 @@ import getpass
 
 CONFIG_FILE = ".persephone_backup.conf"
 
-
 def load_config(config_file):
     """
     Loads configuration from the config file if it exists.
@@ -23,7 +22,6 @@ def load_config(config_file):
       BACKUP_PATHS_STR="/root /home /var /etc /srv /usr /opt"
       AWS_ACCESS_KEY_ID="..."
       AWS_SECRET_ACCESS_KEY="..."
-      AWS_DEFAULT_REGION="us-east-1"
     Returns a dictionary with the configuration values.
     """
     config = {}
@@ -40,7 +38,6 @@ def load_config(config_file):
                     value = value.strip().strip('"').strip("'")
                     config[key] = value
     return config
-
 
 def prompt_input(prompt_message, default_val=None, hidden=False):
     """
@@ -63,16 +60,14 @@ def prompt_input(prompt_message, default_val=None, hidden=False):
         else:
             print("Error: Input cannot be empty. Please enter a valid value.")
 
-
 def save_config(config_file, config):
     """
     Saves the configuration dictionary to the config file.
     """
     with open(config_file, "w") as f:
         for key, value in config.items():
-            f.write(f'{key}="{value}"\n')
-
-
+            f.write(f'{key}="{value}"\n')\
+            
 def main():
     # Load configuration if available.
     config = load_config(CONFIG_FILE)
@@ -85,7 +80,6 @@ def main():
     # AWS credentials defaults.
     default_aws_access_key = config.get("AWS_ACCESS_KEY_ID", "")
     default_aws_secret_key = config.get("AWS_SECRET_ACCESS_KEY", "")
-    default_aws_region = config.get("AWS_DEFAULT_REGION", "us-east-1")
 
     print("=== Restic Backup Configuration ===")
     repo_file = prompt_input("Enter the restic repository file path", default_repo)
@@ -95,7 +89,6 @@ def main():
     print("\n=== AWS Credentials ===")
     aws_access_key = prompt_input("Enter AWS_ACCESS_KEY_ID", default_aws_access_key)
     aws_secret_key = prompt_input("Enter AWS_SECRET_ACCESS_KEY", default_aws_secret_key, hidden=True)
-    aws_region = prompt_input("Enter AWS_DEFAULT_REGION", default_aws_region)
 
     # Update configuration dictionary.
     config["REPO_FILE"] = repo_file
@@ -103,7 +96,6 @@ def main():
     config["BACKUP_PATHS_STR"] = backup_paths_str
     config["AWS_ACCESS_KEY_ID"] = aws_access_key
     config["AWS_SECRET_ACCESS_KEY"] = aws_secret_key
-    config["AWS_DEFAULT_REGION"] = aws_region
 
     # Save the configuration for future runs.
     save_config(CONFIG_FILE, config)
@@ -115,7 +107,6 @@ def main():
     env = os.environ.copy()
     env["AWS_ACCESS_KEY_ID"] = aws_access_key
     env["AWS_SECRET_ACCESS_KEY"] = aws_secret_key
-    env["AWS_DEFAULT_REGION"] = aws_region
 
     # Run the backup command.
     print("\nRunning Restic backup...")
@@ -142,7 +133,6 @@ def main():
     subprocess.run(snapshots_cmd, check=True, env=env)
 
     print("Restic backup and snapshot check complete.")
-
 
 if __name__ == "__main__":
     main()
