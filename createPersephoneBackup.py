@@ -3,12 +3,13 @@
 createPersephoneBackup.py
 
 This script performs a Restic backup by prompting for required configuration
-values, storing those values in a config file (.persephone_backup.conf) for future
-runs, and then executing the Restic commands.
+values—including AWS credentials—storing those values in a config file 
+(.persephone_backup.conf) for future runs, and then executing the Restic commands.
 """
 
 import os
 import subprocess
+import getpass
 
 CONFIG_FILE = ".persephone_backup.conf"
 
@@ -16,10 +17,13 @@ CONFIG_FILE = ".persephone_backup.conf"
 def load_config(config_file):
     """
     Loads configuration from the config file if it exists.
-    Expected file format:
-        REPO_FILE="/root/.restic-repo"
-        PASS_FILE="/root/.restic-password"
-        BACKUP_PATHS_STR="/root /home /var /etc /srv /usr /opt"
+    Expected file format (one key="value" per line):
+      REPO_FILE="s3:https://s3api.cybermonkey.dev/restic"
+      PASS_FILE="/root/.restic-password"
+      BACKUP_PATHS_STR="/root /home /var /etc /srv /usr /opt"
+      AWS_ACCESS_KEY_ID="..."
+      AWS_SECRET_ACCESS_KEY="..."
+      AWS_DEFAULT_REGION="us-east-1"
     Returns a dictionary with the configuration values.
     """
     config = {}
@@ -38,17 +42,20 @@ def load_config(config_file):
     return config
 
 
-def prompt_input(prompt_message, default_val=None):
+def prompt_input(prompt_message, default_val=None, hidden=False):
     """
     Prompts the user for input with an optional default.
-    If the user just presses Enter and a default exists, the default is returned.
+    If hidden=True, the input will be hidden (useful for sensitive data).
     """
     if default_val:
         prompt = f"{prompt_message} [{default_val}]: "
     else:
         prompt = f"{prompt_message}: "
     while True:
-        response = input(prompt).strip()
+        if hidden:
+            response = getpass.getpass(prompt).strip()
+        else:
+            response = input(prompt).strip()
         if response == "" and default_val is not None:
             return default_val
         elif response != "":
@@ -57,33 +64,58 @@ def prompt_input(prompt_message, default_val=None):
             print("Error: Input cannot be empty. Please enter a valid value.")
 
 
-def save_config(config_file, repo_file, pass_file, backup_paths_str):
+def save_config(config_file, config):
     """
-    Saves the configuration values to the config file.
+    Saves the configuration dictionary to the config file.
     """
     with open(config_file, "w") as f:
-        f.write(f'REPO_FILE="{repo_file}"\n')
-        f.write(f'PASS_FILE="{pass_file}"\n')
-        f.write(f'BACKUP_PATHS_STR="{backup_paths_str}"\n')
+        for key, value in config.items():
+            f.write(f'{key}="{value}"\n')
 
 
 def main():
     # Load configuration if available.
     config = load_config(CONFIG_FILE)
-    default_repo = config.get("REPO_FILE", "/root/.restic-repo")
-    default_pass = config.get("PASS_FILE", "/root/.restic-password")
+
+    # Get default values from the config or use sensible defaults.
+    default_repo = config.get("REPO_FILE", "s3:https://s3api.cybermonkey.dev/restic")
+    default_pass_file = config.get("PASS_FILE", "/root/.restic-password")
     default_backup_paths = config.get("BACKUP_PATHS_STR", "/root /home /var /etc /srv /usr /opt")
+
+    # AWS credentials defaults.
+    default_aws_access_key = config.get("AWS_ACCESS_KEY_ID", "")
+    default_aws_secret_key = config.get("AWS_SECRET_ACCESS_KEY", "")
+    default_aws_region = config.get("AWS_DEFAULT_REGION", "us-east-1")
 
     print("=== Restic Backup Configuration ===")
     repo_file = prompt_input("Enter the restic repository file path", default_repo)
-    pass_file = prompt_input("Enter the restic password file path", default_pass)
+    pass_file = prompt_input("Enter the restic password file path", default_pass_file)
     backup_paths_str = prompt_input("Enter backup paths (space-separated)", default_backup_paths)
 
-    # Save the entered configuration for future runs.
-    save_config(CONFIG_FILE, repo_file, pass_file, backup_paths_str)
+    print("\n=== AWS Credentials ===")
+    aws_access_key = prompt_input("Enter AWS_ACCESS_KEY_ID", default_aws_access_key)
+    aws_secret_key = prompt_input("Enter AWS_SECRET_ACCESS_KEY", default_aws_secret_key, hidden=True)
+    aws_region = prompt_input("Enter AWS_DEFAULT_REGION", default_aws_region)
 
-    # Convert the backup paths (a space-separated string) into a list.
+    # Update configuration dictionary.
+    config["REPO_FILE"] = repo_file
+    config["PASS_FILE"] = pass_file
+    config["BACKUP_PATHS_STR"] = backup_paths_str
+    config["AWS_ACCESS_KEY_ID"] = aws_access_key
+    config["AWS_SECRET_ACCESS_KEY"] = aws_secret_key
+    config["AWS_DEFAULT_REGION"] = aws_region
+
+    # Save the configuration for future runs.
+    save_config(CONFIG_FILE, config)
+
+    # Convert the backup paths string to a list.
     backup_paths = backup_paths_str.split()
+
+    # Prepare environment variables for subprocess.
+    env = os.environ.copy()
+    env["AWS_ACCESS_KEY_ID"] = aws_access_key
+    env["AWS_SECRET_ACCESS_KEY"] = aws_secret_key
+    env["AWS_DEFAULT_REGION"] = aws_region
 
     # Run the backup command.
     print("\nRunning Restic backup...")
@@ -96,7 +128,7 @@ def main():
         "backup",
     ] + backup_paths
 
-    subprocess.run(backup_cmd, check=True)
+    subprocess.run(backup_cmd, check=True, env=env)
 
     # Check snapshots.
     print("Backup completed. Checking snapshots...")
@@ -107,7 +139,7 @@ def main():
         "--password-file", pass_file,
         "snapshots",
     ]
-    subprocess.run(snapshots_cmd, check=True)
+    subprocess.run(snapshots_cmd, check=True, env=env)
 
     print("Restic backup and snapshot check complete.")
 
