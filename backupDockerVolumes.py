@@ -42,14 +42,14 @@ def check_running_containers():
 
 def backup_volume(volume_name, backup_dir):
     """
-    Backs up the specified Docker volume using the loomchild/volume-backup container.
+    Backs up the specified Docker volume using the CodeMonkeyCybersecurity/volume-backup (fork ofloomchild/volume-backup) container.
     The backup archive is stored as <backup_dir>/<volume_name>.tar.
     """
     archive_path = os.path.join(backup_dir, f"{volume_name}.tar")
     print(f"Backing up volume '{volume_name}' to '{archive_path}'...")
 
     # Build the docker command:
-    # docker run -v [volume-name]:/volume --rm --log-driver none loomchild/volume-backup backup
+    # docker run -v [volume-name]:/volume --rm --log-driver none CodeMonkeyCybersecurity/volume-backup backup
     command = [
         "docker", "run",
         "-v", f"{volume_name}:/volume",
