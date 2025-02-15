@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-createPersephoneBackup.py
+initPersephoneBackup.py
 
 This script performs a Restic backup by prompting for required configuration
 values—including AWS credentials—storing those values in a config file 
