@@ -108,6 +108,23 @@ def initialize_repo(repo_file, pass_file, env):
     subprocess.run(init_cmd, check=True, env=env)
     print("Repository initialized successfully.")
 
+def ensure_file_exists(file_path, prompt_message, hidden=False):
+    """
+    Checks if a file exists. If not, prompts the user to supply its content and creates the file.
+    """
+    if not os.path.exists(file_path):
+        print(f"\nFile '{file_path}' not found.")
+        # Ensure the parent directory exists.
+        parent_dir = os.path.dirname(os.path.abspath(file_path))
+        if parent_dir and not os.path.exists(parent_dir):
+            os.makedirs(parent_dir, exist_ok=True)
+        content = prompt_input(prompt_message, hidden=hidden)
+        with open(file_path, "w") as f:
+            f.write(content.strip() + "\n")
+        print(f"Created file: {file_path}")
+    else:
+        print(f"Found file: {file_path}")
+
 def main():
     # Load configuration if available.
     config = load_config(CONFIG_FILE)
@@ -139,6 +156,10 @@ def main():
 
     # Save the configuration for future runs.
     save_config(CONFIG_FILE, config)
+
+    # Ensure the restic password file exists.
+    # (For a remote repository, you typically only need to ensure the password file is available.)
+    ensure_file_exists(pass_file, "Enter restic repository password", hidden=True)
 
     # Prepare environment variables for subprocess.
     env = os.environ.copy()
