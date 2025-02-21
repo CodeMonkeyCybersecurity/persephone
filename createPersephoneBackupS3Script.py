@@ -10,14 +10,27 @@ values—including AWS credentials—and storing those values in a config file
   - PERS_PASSWD_FILE: The file path to the password file.
   - PERS_PASSWD_FILE_VALUE: The literal password that should be in that file.
 Before running the backup, the script updates those files with the confirmed values.
-It then executes the Restic backup and snapshot commands.
+Instead of directly running the backup, it outputs a minimal bash script in the format:
+
+    #!/bin/bash
+    export AWS_ACCESS_KEY_ID=<value>
+    export AWS_SECRET_ACCESS_KEY=<value>
+    restic -r <PERS_REPO_FILE_VALUE> --password-file <PERS_PASSWD_FILE> backup --verbose <backup_paths> --tag "<hostname>-$(date +\\%Y-\\%m-\\%d_\\%H-\\%M-\\%S)"
+    echo ""
+    echo "finis"
+
+It then makes the script executable, creates /opt/persephone/ if needed, and moves the bash script there.
 """
 
 import os
 import subprocess
 import getpass
+import socket
+import shutil
 
 CONFIG_FILE = ".persephone.conf"
+BASH_SCRIPT_NAME = "persephone.sh"
+TARGET_DIR = "/opt/persephone/"
 
 def load_config(config_file):
     """
@@ -60,7 +73,7 @@ def prompt_input(prompt_message, default_val=None, hidden=False):
 
 def get_confirmed_value(key, prompt_message, default_val, hidden=False):
     """
-    Prompts for a value (e.g. a file path) and asks for confirmation.
+    Prompts for a value (e.g. a file path or literal value) and asks for confirmation.
     Returns the confirmed (or updated) value.
     """
     value = prompt_input(prompt_message, default_val, hidden)
@@ -79,6 +92,24 @@ def save_config(config_file, config):
         for key, value in config.items():
             f.write(f'{key}="{value}"\n')
 
+def generate_bash_script(config):
+    """
+    Generates a minimal bash script (persephone.sh) using the configuration values.
+    """
+    hostname = socket.gethostname()
+    # Build the restic command using the literal repository value and backup paths.
+    bash_lines = [
+        "#!/bin/bash",
+        "",
+        f"export AWS_ACCESS_KEY_ID={config['AWS_ACCESS_KEY_ID']}",
+        f"export AWS_SECRET_ACCESS_KEY={config['AWS_SECRET_ACCESS_KEY']}",
+        # Construct the restic backup command.
+        f"restic -r {config['PERS_REPO_FILE_VALUE']} --password-file {config['PERS_PASSWD_FILE']} backup --verbose {config['BACKUP_PATHS_STR']} --tag \"{hostname}-$(date +\\%Y-\\%m-\\%d_\\%H-\\%M-\\%S)\"",
+        "echo \"\"",
+        "echo \"finis\""
+    ]
+    return "\n".join(bash_lines)
+
 def main():
     # Load existing configuration if available.
     config = load_config(CONFIG_FILE)
@@ -89,14 +120,14 @@ def main():
     default_repo_file = config.get("PERS_REPO_FILE", "/root/.persephone-repo")
     pers_repo_file = get_confirmed_value("PERS_REPO_FILE", "Enter the repository file path", default_repo_file)
     
-    default_repo_value = config.get("PERS_REPO_FILE_VALUE", "/root/.restic-password-content")
+    default_repo_value = config.get("PERS_REPO_FILE_VALUE", "s3:https://persephoneapi.cybermonkey.dev/restic/vhost5")
     pers_repo_file_value = get_confirmed_value("PERS_REPO_FILE_VALUE", "Enter the repository file literal value", default_repo_value)
 
     # --- Password file and its value ---
     default_pass_file = config.get("PERS_PASSWD_FILE", "/root/.persephone-passwd")
     pers_pass_file = get_confirmed_value("PERS_PASSWD_FILE", "Enter the password file path", default_pass_file)
     
-    default_pass_value = config.get("PERS_PASSWD_FILE_VALUE", "/root/.restic-password-content")
+    default_pass_value = config.get("PERS_PASSWD_FILE_VALUE", "default-password")
     pers_pass_value = get_confirmed_value("PERS_PASSWD_FILE_VALUE", "Enter the password file literal value", default_pass_value, hidden=True)
 
     # --- Other configuration values ---
@@ -137,41 +168,27 @@ def main():
     except Exception as e:
         print(f"Error writing to {pers_pass_file}: {e}")
 
-    # Convert the backup paths string to a list.
-    backup_paths = backup_paths_str.split()
+    # Generate the minimal bash script.
+    bash_script = generate_bash_script(config)
+    script_path = os.path.join(os.getcwd(), BASH_SCRIPT_NAME)
+    try:
+        with open(script_path, "w") as f:
+            f.write(bash_script + "\n")
+        # Make it executable.
+        os.chmod(script_path, 0o755)
+        print(f"\nBash script '{BASH_SCRIPT_NAME}' generated in current directory.")
+    except Exception as e:
+        print(f"Error writing bash script: {e}")
+        return
 
-    # Prepare environment variables for subprocess.
-    env = os.environ.copy()
-    env["AWS_ACCESS_KEY_ID"] = aws_access_key
-    env["AWS_SECRET_ACCESS_KEY"] = aws_secret_key
-  
-    # Run the backup command.
-    print("\nRunning Restic backup...")
-    backup_cmd = [
-        "sudo",
-        "restic",
-        "-r", pers_repo_file_value,
-        "--password-file", pers_pass_file,
-        "backup",
-        "--verbose",
-        "--tag",
-        f"{os.uname().nodename}-$(date +\\%Y-\\%m-\\%d_\\%H-\\%M-\\%S)"
-    ] + backup_paths
-
-    subprocess.run(backup_cmd, check=True, env=env)
-
-    # Check snapshots.
-    print("Backup completed. Checking snapshots...")
-    snapshots_cmd = [
-        "sudo",
-        "restic",
-        "-r", pers_repo_file_value,
-        "--password-file", pers_pass_file,
-        "snapshots"
-    ]
-    subprocess.run(snapshots_cmd, check=True, env=env)
-
-    print("Restic backup and snapshot check complete.")
+    # Create target directory if it doesn't exist and move the script there.
+    try:
+        os.makedirs(TARGET_DIR, exist_ok=True)
+        target_path = os.path.join(TARGET_DIR, BASH_SCRIPT_NAME)
+        shutil.move(script_path, target_path)
+        print(f"Bash script moved to: {target_path}")
+    except Exception as e:
+        print(f"Error moving bash script to {TARGET_DIR}: {e}")
 
 if __name__ == "__main__":
     main()
