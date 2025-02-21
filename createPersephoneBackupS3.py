@@ -150,10 +150,16 @@ def main():
     backup_cmd = [
         "sudo",
         "restic",
-        "--repository-file", pers_repo_file,
+        "export", aws_access_key
+        "export", aws_secret_key
+        "-r", pers_repo_file,
         "--password-file", pers_pass_file,
-        "--verbose",
         "backup",
+        backup_paths_str,
+        "--verbose",
+        "--tag",
+        "${hostname}-$(date +\%Y-\%m-\%d_\%H-\%M-\%S)"
+
     ] + backup_paths
 
     subprocess.run(backup_cmd, check=True, env=env)
@@ -163,7 +169,9 @@ def main():
     snapshots_cmd = [
         "sudo",
         "restic",
-        "--repository-file", pers_repo_file,
+        "export", aws_access_key
+        "export", aws_secret_key
+        "-r", pers_repo_file,
         "--password-file", pers_pass_file,
         "snapshots",
     ]
