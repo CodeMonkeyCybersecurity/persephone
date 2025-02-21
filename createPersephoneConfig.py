@@ -64,6 +64,18 @@ def prompt_input(prompt_message, default_val=None, hidden=False):
         else:
             print("Error: Input cannot be empty. Please enter a valid value.")
 
+def prompt_confirmed_password(prompt_message):
+    """
+    Prompts the user to enter a password twice to confirm it matches.
+    """
+    while True:
+        p1 = getpass.getpass(prompt_message + ": ")
+        p2 = getpass.getpass("Confirm " + prompt_message + ": ")
+        if p1 == p2:
+            return p1
+        else:
+            print("Passwords do not match. Please try again.")
+
 def get_confirmed_value(key, prompt_message, default_val):
     """
     Prompts for a value with a default and asks for confirmation.
@@ -118,6 +130,47 @@ def get_confirmed_file_value(file_path, description, hidden=False):
             print(f"Error creating {description} file at {file_path}: {e}")
         return new_value
 
+def get_confirmed_password_file_value(file_path, description):
+    """
+    For a given password file path, checks if the file exists.
+      - If it exists, you are asked whether the current password is correct.
+        If not, you are prompted to enter a new password twice for confirmation.
+        The file is then updated with the new value.
+      - If it does not exist, you are prompted for a new password (entered twice),
+        and the file is created with that value.
+    Returns the confirmed password.
+    """
+    if os.path.exists(file_path):
+        try:
+            with open(file_path, "r") as f:
+                current_value = f.read().strip()
+        except Exception as e:
+            print(f"Error reading {description} file at {file_path}: {e}")
+            current_value = ""
+        print(f"{description} file found at '{file_path}'.")
+        answer = input(f"Is the current password correct? (Y/n): ").strip().lower()
+        if answer in ["", "y", "yes"]:
+            return current_value
+        else:
+            new_value = prompt_confirmed_password(f"Enter new password for {description}")
+            try:
+                with open(file_path, "w") as f:
+                    f.write(new_value + "\n")
+                print(f"Updated {description} file at {file_path}.")
+            except Exception as e:
+                print(f"Error updating {description} file at {file_path}: {e}")
+            return new_value
+    else:
+        print(f"{description} file does not exist at {file_path}. It will be created.")
+        new_value = prompt_confirmed_password(f"Enter password for {description}")
+        try:
+            with open(file_path, "w") as f:
+                f.write(new_value + "\n")
+            print(f"Created {description} file at {file_path} with provided value.")
+        except Exception as e:
+            print(f"Error creating {description} file at {file_path}: {e}")
+        return new_value
+
 def main():
     # Load any existing configuration.
     existing_config = load_config(CONFIG_FILE)
@@ -132,7 +185,8 @@ def main():
     default_passwd_file = existing_config.get("PERS_PASSWD_FILE", "/root/.persephone-passwd")
     pers_passwd_file = get_confirmed_value("PERS_PASSWD_FILE", "Enter the password file path", default_passwd_file)
     
-    pers_passwd_file_value = get_confirmed_file_value(pers_passwd_file, "PERS_PASSWD_FILE_VALUE", hidden=True)
+    # For the password value, prompt for confirmation (password twice)
+    pers_passwd_file_value = get_confirmed_password_file_value(pers_passwd_file, "PERS_PASSWD_FILE_VALUE")
     
     # --- Other configuration values ---
     backup_paths_str = existing_config.get("BACKUP_PATHS_STR") or prompt_input(
