@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-check_restic_files.py
+createPersephoneFiles.py
 
 - Checks if /root/.restic-repo and /root/.restic-passwd exist.
 - If a file doesn't exist, prompts for its contents and creates it.
