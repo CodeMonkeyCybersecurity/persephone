@@ -17,7 +17,7 @@ def load_config(config_file):
     """
     Loads configuration from the config file if it exists.
     Expected file format (one key="value" per line):
-      REPO_FILE="s3:https://s3api.cybermonkey.dev/restic"
+      REPO_FILE="/root/.restic-repo"
       PASS_FILE="/root/.restic-password"
       BACKUP_PATHS_STR="/root /home /var /etc /srv /usr /opt"
       AWS_ACCESS_KEY_ID="..."
