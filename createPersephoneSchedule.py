@@ -108,6 +108,8 @@ def main():
         print("\nCrontab updated successfully. New crontab:")
         updated = subprocess.run(["crontab", "-l"], capture_output=True, text=True, check=True)
         print(updated.stdout)
+        print("")
+        print("You should confirm this works by running /opt/persephone/persephone.sh in your terminal now")
     except subprocess.CalledProcessError as e:
         print("Error updating crontab:", e)
 
