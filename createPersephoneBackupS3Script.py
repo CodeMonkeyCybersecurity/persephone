@@ -186,7 +186,7 @@ def main():
         os.makedirs(TARGET_DIR, exist_ok=True)
         target_path = os.path.join(TARGET_DIR, BASH_SCRIPT_NAME)
         shutil.move(script_path, target_path)
-        print(f"Bash script moved to: {target_path}")
+        print(f"Bash script moved to: {target_path}". You should now run ./createPersephoneSchedule.py to implement automated regular backups.)
     except Exception as e:
         print(f"Error moving bash script to {TARGET_DIR}: {e}")
 
