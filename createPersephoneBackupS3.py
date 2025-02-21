@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-createPersephoneBackup.py
+createPersephoneBackupS3.py
 
 This script performs a Restic backup by prompting for required configuration
 values—including AWS credentials—storing those values in a config file 
@@ -11,7 +11,7 @@ import os
 import subprocess
 import getpass
 
-CONFIG_FILE = ".persephone_backup.conf"
+CONFIG_FILE = ".persephone.conf"
 
 def load_config(config_file):
     """
