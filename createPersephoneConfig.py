@@ -5,10 +5,10 @@ createPersephoneConfig.py
 This script creates or updates the backup configuration file (.persephone.conf)
 with values required by createPersephoneBackup.py.
 
-For the repository and password settings, you can either supply the literal values
-or a path to a file that contains the desired value. If a file exists at the given path,
-the script reads its contents, shows them to you, and asks for confirmation.
-If you do not confirm, you can enter the literal value instead.
+For the repository (REPO_FILE) and password (PASS_FILE) settings, you can either supply
+a literal value or a file path that contains the desired value. If a file exists at the
+given path, the script reads its contents, shows them to you, and asks for confirmation.
+For PASS_FILE, if you do not confirm, the file’s contents will be overwritten with the new value.
 """
 
 import os
@@ -97,6 +97,7 @@ def get_value_from_file_or_input(key, prompt_message, default_val, hidden=False)
     If the entered value is a path to an existing file, its contents are read
     and displayed for confirmation. If confirmed, the file content is returned;
     otherwise, the user is prompted to enter a literal value.
+    (Used for REPO_FILE.)
     """
     value_input = prompt_input(prompt_message, default_val, hidden)
     if os.path.exists(value_input):
@@ -115,6 +116,53 @@ def get_value_from_file_or_input(key, prompt_message, default_val, hidden=False)
     else:
         return value_input
 
+def get_pass_value(prompt_message, default_path, hidden=True):
+    """
+    Prompts for a value for PASS_FILE that may either be a literal value or a file path.
+    If a file exists at the given path, its contents are read and displayed for confirmation.
+    If the user does not confirm, the user is prompted to enter a literal value and the file
+    at default_path is overwritten with that literal value.
+    """
+    # Prompt for input; default is the file path.
+    value_input = prompt_input(prompt_message, default_path, hidden)
+    if os.path.exists(value_input):
+        try:
+            with open(value_input, 'r') as f:
+                file_content = f.read().strip()
+            print(f"Found file at '{value_input}' with content:\n  {file_content}")
+            answer = input("Is this the correct value for PASS_FILE? (Y/n): ").strip().lower()
+            if answer in ["", "y", "yes"]:
+                return file_content
+            else:
+                new_value = prompt_input("Enter literal value for PASS_FILE", default_path, hidden)
+                try:
+                    with open(value_input, "w") as f:
+                        f.write(new_value + "\n")
+                    print(f"Updated {value_input} with the new password value.")
+                except Exception as e:
+                    print(f"Error updating {value_input}: {e}")
+                return new_value
+        except Exception as e:
+            print(f"Error reading file {value_input}: {e}")
+            new_value = prompt_input("Enter literal value for PASS_FILE", default_path, hidden)
+            try:
+                with open(default_path, "w") as f:
+                    f.write(new_value + "\n")
+                print(f"Updated {default_path} with the new password value.")
+            except Exception as e:
+                print(f"Error writing to {default_path}: {e}")
+            return new_value
+    else:
+        # If the file does not exist, assume the user entered a literal value and create the file.
+        new_value = value_input
+        try:
+            with open(default_path, "w") as f:
+                f.write(new_value + "\n")
+            print(f"Created file {default_path} with the provided password value.")
+        except Exception as e:
+            print(f"Error writing to {default_path}: {e}")
+        return new_value
+
 def main():
     # Load previous configuration if available.
     existing_config = load_config(CONFIG_FILE)
@@ -125,7 +173,6 @@ def main():
         repo_default = existing_config["REPO_FILE"]
         print(f"Existing REPO_FILE value: {repo_default}")
     else:
-        # Let the user choose repository type and use its default value.
         repo_type, repo_type_default = choose_repo_type()
         repo_default = repo_type_default
     
@@ -133,17 +180,15 @@ def main():
                                               "Enter the repository value or file path", 
                                               repo_default)
     
-    # For PASS_FILE: similarly prompt for a value (or file path) and read contents if applicable.
+    # For PASS_FILE: prompt for a value (or file path) and, if a file exists,
+    # read its contents. If not confirmed, overwrite the file with the literal value.
     if "PASS_FILE" in existing_config:
         pass_default = existing_config["PASS_FILE"]
         print(f"Existing PASS_FILE value: {pass_default}")
     else:
         pass_default = "/root/.restic-password"
         
-    pass_value = get_value_from_file_or_input("PASS_FILE", 
-                                              "Enter the restic password value or file path", 
-                                              pass_default, 
-                                              hidden=True)
+    pass_value = get_pass_value("Enter the restic password value or file path", pass_default, hidden=True)
     
     # Prompt for remaining configuration values.
     backup_paths_str = existing_config.get("BACKUP_PATHS_STR") or prompt_input(
