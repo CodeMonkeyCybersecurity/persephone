@@ -150,7 +150,7 @@ def main():
     backup_cmd = [
         "sudo",
         "restic",
-        "-r", pers_repo_file_value
+        "-r", pers_repo_file_value,
         "--password-file", pers_pass_file,
         "backup",
         "--verbose",
