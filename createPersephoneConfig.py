@@ -13,7 +13,7 @@ import shutil
 import datetime
 import getpass
 
-CONFIG_FILE = ".persephone_backup.conf"
+CONFIG_FILE = ".persephone.conf"
 
 def backup_existing_config(config_file):
     if os.path.exists(config_file):
