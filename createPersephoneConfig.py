@@ -5,10 +5,14 @@ createPersephoneConfig.py
 This script creates or updates the backup configuration file (.persephone.conf)
 with values required by createPersephoneBackup.py.
 
-For the repository (REPO_FILE) and password (PASS_FILE) settings, you can either supply
-a literal value or a file path that contains the desired value. If a file exists at the
-given path, the script reads its contents, shows them to you, and asks for confirmation.
-For PASS_FILE, if you do not confirm, the file’s contents will be overwritten with the new value.
+It manages four key values:
+  - PERS_REPO_FILE: The repository file path (e.g. /root/.persephone-repo)
+  - PERS_REPO_FILE_VALUE: The literal value contained in that file
+  - PERS_PASSWD_FILE: The password file path (e.g. /root/.persephone-passwd)
+  - PERS_PASSWD_FILE_VALUE: The literal value contained in that file
+
+For each, the script asks you to confirm the current setting. If you indicate it’s not
+correct, you are prompted to update only the literal value (for the _VALUE keys) or the file path.
 """
 
 import os
@@ -20,9 +24,9 @@ CONFIG_FILE = ".persephone.conf"
 
 def load_config(config_file):
     """
-    Loads configuration from the config file if it exists.
-    Expected file format (one key="value" per line).
-    Returns a dictionary with the configuration values.
+    Loads configuration from the file if it exists.
+    Expected format: one key="value" per line.
+    Returns a dictionary of configuration values.
     """
     config = {}
     if os.path.exists(config_file):
@@ -33,9 +37,7 @@ def load_config(config_file):
                     continue
                 if "=" in line:
                     key, value = line.split("=", 1)
-                    key = key.strip()
-                    value = value.strip().strip('"').strip("'")
-                    config[key] = value
+                    config[key.strip()] = value.strip().strip('"').strip("'")
     return config
 
 def backup_existing_config(config_file):
@@ -62,149 +64,91 @@ def prompt_input(prompt_message, default_val=None, hidden=False):
         else:
             print("Error: Input cannot be empty. Please enter a valid value.")
 
-def choose_repo_type(existing_value=None):
-    repo_types = {
-        "s3": "/root/.restic-repo",
-        "sftp": "/root/.restic-repo",
-        "local": "/root/.restic-repo",
-        "rest": "/root/.restic-repo"
-    }
-    
-    print("Select repository type:")
-    for key in repo_types:
-        print(f"  {key}")
-    
-    # Try to infer default choice from an existing value.
-    default_choice = "s3"
-    if existing_value:
-        for typ in repo_types:
-            if existing_value.startswith(typ + ":") or (typ == "local" and existing_value.startswith("/")):
-                default_choice = typ
-                break
-                
-    while True:
-        choice = input(f"Enter repository type (s3/sftp/local/rest) [{default_choice}]: ").strip().lower()
-        if choice == "":
-            choice = default_choice
-        if choice in repo_types:
-            return choice, repo_types[choice]
-        else:
-            print("Invalid option. Please choose one of: s3, sftp, local, rest.")
-
-def get_value_from_file_or_input(key, prompt_message, default_val, hidden=False):
+def get_confirmed_value(key, prompt_message, default_val):
     """
-    Prompts for a value that may either be a literal value or a file path.
-    If the entered value is a path to an existing file, its contents are read
-    and displayed for confirmation. If confirmed, the file content is returned;
-    otherwise, the user is prompted to enter a literal value.
-    (Used for REPO_FILE.)
+    Prompts for a value with a default and asks for confirmation.
+    Returns the confirmed (or updated) value.
     """
-    value_input = prompt_input(prompt_message, default_val, hidden)
-    if os.path.exists(value_input):
-        try:
-            with open(value_input, 'r') as f:
-                file_content = f.read().strip()
-            print(f"Found file at '{value_input}' with content:\n  {file_content}")
-            answer = input(f"Is this the correct value for {key}? (Y/n): ").strip().lower()
-            if answer in ["", "y", "yes"]:
-                return file_content
-            else:
-                return prompt_input(f"Enter literal value for {key}", default_val, hidden)
-        except Exception as e:
-            print(f"Error reading file {value_input}: {e}")
-            return prompt_input(f"Enter literal value for {key}", default_val, hidden)
+    value = prompt_input(prompt_message, default_val)
+    print(f"{key} is set to: {value}")
+    answer = input("Is this correct? (Y/n): ").strip().lower()
+    if answer in ["", "y", "yes"]:
+        return value
     else:
-        return value_input
+        return prompt_input(f"Enter new value for {key}", default_val)
 
-def get_pass_value(prompt_message, default_path, hidden=True):
+def get_confirmed_file_value(file_path, description, hidden=False):
     """
-    Prompts for a value for PASS_FILE that may either be a literal value or a file path.
-    If a file exists at the given path, its contents are read and displayed for confirmation.
-    If the user does not confirm, the user is prompted to enter a literal value and the file
-    at default_path is overwritten with that literal value.
+    For a given file path, checks if the file exists.
+      - If it exists, its content is read and displayed.
+        You’re then asked to confirm that the content (the _VALUE) is correct.
+        If not, you enter a new literal value and the file is overwritten.
+      - If it does not exist, you are prompted for a literal value,
+        and the file is created with that content.
+    Returns the confirmed literal value.
     """
-    # Prompt for input; default is the file path.
-    value_input = prompt_input(prompt_message, default_path, hidden)
-    if os.path.exists(value_input):
+    if os.path.exists(file_path):
         try:
-            with open(value_input, 'r') as f:
-                file_content = f.read().strip()
-            print(f"Found file at '{value_input}' with content:\n  {file_content}")
-            answer = input("Is this the correct value for PASS_FILE? (Y/n): ").strip().lower()
-            if answer in ["", "y", "yes"]:
-                return file_content
-            else:
-                new_value = prompt_input("Enter literal value for PASS_FILE", default_path, hidden)
-                try:
-                    with open(value_input, "w") as f:
-                        f.write(new_value + "\n")
-                    print(f"Updated {value_input} with the new password value.")
-                except Exception as e:
-                    print(f"Error updating {value_input}: {e}")
-                return new_value
+            with open(file_path, "r") as f:
+                current_value = f.read().strip()
         except Exception as e:
-            print(f"Error reading file {value_input}: {e}")
-            new_value = prompt_input("Enter literal value for PASS_FILE", default_path, hidden)
+            print(f"Error reading {description} file at {file_path}: {e}")
+            current_value = ""
+        print(f"{description} file found at '{file_path}' with content:\n  {current_value}")
+        answer = input(f"Is this the correct value for {description}? (Y/n): ").strip().lower()
+        if answer in ["", "y", "yes"]:
+            return current_value
+        else:
+            new_value = prompt_input(f"Enter new literal value for {description}", current_value, hidden)
             try:
-                with open(default_path, "w") as f:
+                with open(file_path, "w") as f:
                     f.write(new_value + "\n")
-                print(f"Updated {default_path} with the new password value.")
+                print(f"Updated {description} file at {file_path}.")
             except Exception as e:
-                print(f"Error writing to {default_path}: {e}")
+                print(f"Error updating {description} file at {file_path}: {e}")
             return new_value
     else:
-        # If the file does not exist, assume the user entered a literal value and create the file.
-        new_value = value_input
+        print(f"{description} file does not exist at {file_path}. It will be created.")
+        new_value = prompt_input(f"Enter literal value for {description}", "", hidden)
         try:
-            with open(default_path, "w") as f:
+            with open(file_path, "w") as f:
                 f.write(new_value + "\n")
-            print(f"Created file {default_path} with the provided password value.")
+            print(f"Created {description} file at {file_path} with provided value.")
         except Exception as e:
-            print(f"Error writing to {default_path}: {e}")
+            print(f"Error creating {description} file at {file_path}: {e}")
         return new_value
 
 def main():
-    # Load previous configuration if available.
+    # Load any existing configuration.
     existing_config = load_config(CONFIG_FILE)
     
-    # For REPO_FILE: prompt for a value (or file path) and, if a file is provided,
-    # read its contents.
-    if "REPO_FILE" in existing_config:
-        repo_default = existing_config["REPO_FILE"]
-        print(f"Existing REPO_FILE value: {repo_default}")
-    else:
-        repo_type, repo_type_default = choose_repo_type()
-        repo_default = repo_type_default
+    # --- For the repository file and its value ---
+    default_repo_file = existing_config.get("PERS_REPO_FILE", "/root/.persephone-repo")
+    pers_repo_file = get_confirmed_value("PERS_REPO_FILE", "Enter the repository file path", default_repo_file)
     
-    repo_value = get_value_from_file_or_input("REPO_FILE", 
-                                              "Enter the repository value or file path", 
-                                              repo_default)
+    pers_repo_file_value = get_confirmed_file_value(pers_repo_file, "PERS_REPO_FILE_VALUE", hidden=False)
     
-    # For PASS_FILE: prompt for a value (or file path) and, if a file exists,
-    # read its contents. If not confirmed, overwrite the file with the literal value.
-    if "PASS_FILE" in existing_config:
-        pass_default = existing_config["PASS_FILE"]
-        print(f"Existing PASS_FILE value: {pass_default}")
-    else:
-        pass_default = "/root/.restic-password"
-        
-    pass_value = get_pass_value("Enter the restic password value or file path", pass_default, hidden=True)
+    # --- For the password file and its value ---
+    default_passwd_file = existing_config.get("PERS_PASSWD_FILE", "/root/.persephone-passwd")
+    pers_passwd_file = get_confirmed_value("PERS_PASSWD_FILE", "Enter the password file path", default_passwd_file)
     
-    # Prompt for remaining configuration values.
+    pers_passwd_file_value = get_confirmed_file_value(pers_passwd_file, "PERS_PASSWD_FILE_VALUE", hidden=True)
+    
+    # --- Other configuration values ---
     backup_paths_str = existing_config.get("BACKUP_PATHS_STR") or prompt_input(
         "Enter backup paths (space-separated)", "/root /home /var /etc /srv /usr /opt")
-    
     aws_access_key = existing_config.get("AWS_ACCESS_KEY_ID") or prompt_input("Enter AWS_ACCESS_KEY_ID", "")
-    
     aws_secret_key = existing_config.get("AWS_SECRET_ACCESS_KEY") or prompt_input("Enter AWS_SECRET_ACCESS_KEY", "", hidden=True)
     
-    # Back up the existing config file if it exists.
+    # Back up existing config file.
     backup_existing_config(CONFIG_FILE)
     
     # Prepare configuration dictionary.
     config = {
-        "REPO_FILE": repo_value,
-        "PASS_FILE": pass_value,
+        "PERS_REPO_FILE": pers_repo_file,
+        "PERS_REPO_FILE_VALUE": pers_repo_file_value,
+        "PERS_PASSWD_FILE": pers_passwd_file,
+        "PERS_PASSWD_FILE_VALUE": pers_passwd_file_value,
         "BACKUP_PATHS_STR": backup_paths_str,
         "AWS_ACCESS_KEY_ID": aws_access_key,
         "AWS_SECRET_ACCESS_KEY": aws_secret_key
