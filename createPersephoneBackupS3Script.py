@@ -120,7 +120,7 @@ def main():
     default_repo_file = config.get("PERS_REPO_FILE", "/root/.persephone-repo")
     pers_repo_file = get_confirmed_value("PERS_REPO_FILE", "Enter the repository file path", default_repo_file)
     
-    default_repo_value = config.get("PERS_REPO_FILE_VALUE", "s3:https://persephoneapi.cybermonkey.dev/restic/vhost5")
+    default_repo_value = config.get("PERS_REPO_FILE_VALUE", "s3:https://persephoneapi.domain.com/repo-name/endpoint-name")
     pers_repo_file_value = get_confirmed_value("PERS_REPO_FILE_VALUE", "Enter the repository file literal value", default_repo_value)
 
     # --- Password file and its value ---
