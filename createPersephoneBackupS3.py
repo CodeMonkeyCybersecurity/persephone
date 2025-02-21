@@ -140,21 +140,22 @@ def main():
     # Convert the backup paths string to a list.
     backup_paths = backup_paths_str.split()
 
+    # Prepare environment variables for subprocess.
+    env = os.environ.copy()
+    env["AWS_ACCESS_KEY_ID"] = aws_access_key
+    env["AWS_SECRET_ACCESS_KEY"] = aws_secret_key
+  
     # Run the backup command.
     print("\nRunning Restic backup...")
     backup_cmd = [
         "sudo",
         "restic",
-        "export", aws_access_key
-        "export", aws_secret_key
         "-r", pers_repo_file,
         "--password-file", pers_pass_file,
         "backup",
-        backup_paths_str,
         "--verbose",
         "--tag",
-        "${hostname}-$(date +\%Y-\%m-\%d_\%H-\%M-\%S)"
-
+        f"{os.uname().nodename}-$(date +\\%Y-\\%m-\\%d_\\%H-\\%M-\\%S)"
     ] + backup_paths
 
     subprocess.run(backup_cmd, check=True, env=env)
@@ -164,11 +165,9 @@ def main():
     snapshots_cmd = [
         "sudo",
         "restic",
-        "export", aws_access_key
-        "export", aws_secret_key
         "-r", pers_repo_file,
         "--password-file", pers_pass_file,
-        "snapshots",
+        "snapshots"
     ]
     subprocess.run(snapshots_cmd, check=True, env=env)
 
