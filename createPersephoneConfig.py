@@ -64,10 +64,10 @@ def prompt_input(prompt_message, default_val=None, hidden=False):
 
 def choose_repo_type(existing_value=None):
     repo_types = {
-        "s3": "s3:https://s3api.domain.com/repo-name/${hostname}",
-        "sftp": "sftp:user@hostname:/mnt/repo-name/${hostname}",
-        "local": "/mnt/repo-name/${hostname}",
-        "rest": "rest:https://restserver.domain.com/repo-name/${hostname}"
+        "s3": "/root/.restic-repo",
+        "sftp": "/root/.restic-repo",
+        "local": "/root/.restic-repo",
+        "rest": "/root/.restic-repo"
     }
     
     print("Select repository type:")
