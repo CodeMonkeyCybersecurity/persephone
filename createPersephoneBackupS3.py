@@ -140,11 +140,6 @@ def main():
     # Convert the backup paths string to a list.
     backup_paths = backup_paths_str.split()
 
-    # Prepare environment variables for subprocess.
-    env = os.environ.copy()
-    env["AWS_ACCESS_KEY_ID"] = aws_access_key
-    env["AWS_SECRET_ACCESS_KEY"] = aws_secret_key
-
     # Run the backup command.
     print("\nRunning Restic backup...")
     backup_cmd = [
