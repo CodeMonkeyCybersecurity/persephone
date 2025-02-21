@@ -19,7 +19,7 @@ BACKUP_PATHS=(
 )
 
 REPO_FILE="/root/.restic-repo"
-PASS_FILE="/root/.restic-password"
+PASS_FILE="/root/.persephone-passwd"
 
 # -----------------------------
 # Main Script
