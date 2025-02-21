@@ -14,7 +14,7 @@ import os
 import getpass
 
 # Define file paths.
-REPO_PATH = "/root/.restic-repo"
+REPO_PATH = "/root/.persephone-repo"
 PASSWD_PATH = "/root/.persephone-passwd"
 
 def check_and_update_file(path, description, hidden=False):
