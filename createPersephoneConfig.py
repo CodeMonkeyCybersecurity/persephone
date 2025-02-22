@@ -213,7 +213,10 @@ def main():
         with open(CONFIG_FILE, "w") as f:
             for key, value in config.items():
                 f.write(f'{key}="{value}"\n')
-        print(f"\nConfiguration successfully saved to {CONFIG_FILE}. You should now run ./createPersephoneBackupS3Script.py to create your backup script.")
+        print(f"\nConfiguration successfully saved to {CONFIG_FILE}.") 
+        print("")
+        print("please now run ./createPersephoneBackupS3Script.py to create the backup script.")
+        print("")
     except Exception as e:
         print(f"Error saving configuration: {e}")
 
