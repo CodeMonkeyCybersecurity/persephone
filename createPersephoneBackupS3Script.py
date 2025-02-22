@@ -20,6 +20,8 @@ Instead of directly running the backup, it outputs a minimal bash script in the 
     echo "finis"
 
 It then makes the script executable, creates /opt/persephone/ if needed, and moves the bash script there.
+
+Additionally, it now creates a 'persephoneInspectSnapshots.sh' script which allows the user to inspect snapshots in the same repository.
 """
 
 import os
@@ -29,7 +31,8 @@ import socket
 import shutil
 
 CONFIG_FILE = ".persephone.conf"
-BASH_SCRIPT_NAME = "persephone.sh"
+BACKUP_SCRIPT_NAME = "persephone.sh"
+INSPECT_SCRIPT_NAME = "persephoneInspectSnapshots.sh"
 TARGET_DIR = "/opt/persephone/"
 
 def load_config(config_file):
@@ -97,16 +100,30 @@ def generate_bash_script(config):
     Generates a minimal bash script (persephone.sh) using the configuration values.
     """
     hostname = socket.gethostname()
-    # Build the restic command using the literal repository value and backup paths.
     bash_lines = [
         "#!/bin/bash",
         "",
         f"export AWS_ACCESS_KEY_ID={config['AWS_ACCESS_KEY_ID']}",
         f"export AWS_SECRET_ACCESS_KEY={config['AWS_SECRET_ACCESS_KEY']}",
-        # Construct the restic backup command.
         f"restic -r {config['PERS_REPO_FILE_VALUE']} --password-file {config['PERS_PASSWD_FILE']} backup --verbose {config['BACKUP_PATHS_STR']} --tag \"{hostname}-$(date +\\%Y-\\%m-\\%d_\\%H-\\%M-\\%S)\"",
         "echo \"\"",
         "echo \"finis\""
+    ]
+    return "\n".join(bash_lines)
+
+def generate_inspect_script(config):
+    """
+    Generates a minimal bash script (persephoneInspectSnapshots.sh) that allows
+    the user to inspect snapshots in the repository.
+    """
+    bash_lines = [
+        "#!/bin/bash",
+        "",
+        f"export AWS_ACCESS_KEY_ID={config['AWS_ACCESS_KEY_ID']}",
+        f"export AWS_SECRET_ACCESS_KEY={config['AWS_SECRET_ACCESS_KEY']}",
+        f"restic -r {config['PERS_REPO_FILE_VALUE']} --password-file {config['PERS_PASSWD_FILE']} snapshots",
+        "echo \"\"",
+        "echo \"Inspection complete.\""
     ]
     return "\n".join(bash_lines)
 
@@ -168,31 +185,45 @@ def main():
     except Exception as e:
         print(f"Error writing to {pers_pass_file}: {e}")
 
-    # Generate the minimal bash script.
-    bash_script = generate_bash_script(config)
-    script_path = os.path.join(os.getcwd(), BASH_SCRIPT_NAME)
+    # Generate the backup bash script.
+    backup_script_content = generate_bash_script(config)
+    backup_script_path = os.path.join(os.getcwd(), BACKUP_SCRIPT_NAME)
     try:
-        with open(script_path, "w") as f:
-            f.write(bash_script + "\n")
-        # Make it executable.
-        os.chmod(script_path, 0o755)
-        print(f"\nBash script '{BASH_SCRIPT_NAME}' generated in current directory.")
+        with open(backup_script_path, "w") as f:
+            f.write(backup_script_content + "\n")
+        os.chmod(backup_script_path, 0o755)
+        print(f"\nBash script '{BACKUP_SCRIPT_NAME}' generated in current directory.")
     except Exception as e:
         print(f"Error writing bash script: {e}")
         return
 
-    # Create target directory if it doesn't exist and move the script there.
+    # Generate the inspect snapshots bash script.
+    inspect_script_content = generate_inspect_script(config)
+    inspect_script_path = os.path.join(os.getcwd(), INSPECT_SCRIPT_NAME)
+    try:
+        with open(inspect_script_path, "w") as f:
+            f.write(inspect_script_content + "\n")
+        os.chmod(inspect_script_path, 0o755)
+        print(f"Bash script '{INSPECT_SCRIPT_NAME}' generated in current directory.")
+    except Exception as e:
+        print(f"Error writing inspect script: {e}")
+        return
+
+    # Create target directory if it doesn't exist and move the scripts there.
     try:
         os.makedirs(TARGET_DIR, exist_ok=True)
-        target_path = os.path.join(TARGET_DIR, BASH_SCRIPT_NAME)
-        shutil.move(script_path, target_path)
-        print(f"Bash script moved to: {target_path}.") 
+        target_backup_path = os.path.join(TARGET_DIR, BACKUP_SCRIPT_NAME)
+        target_inspect_path = os.path.join(TARGET_DIR, INSPECT_SCRIPT_NAME)
+        shutil.move(backup_script_path, target_backup_path)
+        shutil.move(inspect_script_path, target_inspect_path)
+        print(f"Bash scripts moved to: {TARGET_DIR}.") 
         print("")
-        print("Please now run /opt/persephone/persephone.sh to check it works correctly.")
+        print(f"Please now run {target_backup_path} to check the backup script works correctly.")
+        print(f"And run {target_inspect_path} to inspect your Persephone snapshots.")
         print("")
-        print("If it does work correctly, then please consider running ./createPersephoneSchedule.py to implement automated regular backups.")
+        print("If everything works correctly, consider running ./createPersephoneSchedule.py to implement automated regular backups.")
     except Exception as e:
-        print(f"Error moving bash script to {TARGET_DIR}: {e}")
+        print(f"Error moving bash scripts to {TARGET_DIR}: {e}")
 
 if __name__ == "__main__":
     main()
