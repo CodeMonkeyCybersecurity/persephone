@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-createPersephoneBackupS3.py
+createPersephoneBackupS3Script.py
 
 This script performs a Restic backup by prompting for required configuration
 values—including AWS credentials—and storing those values in a config file 
@@ -188,7 +188,9 @@ def main():
         shutil.move(script_path, target_path)
         print(f"Bash script moved to: {target_path}.") 
         print("")
-        print("Please now run ./createPersephoneSchedule.py to implement automated regular backups.")
+        print("Please now run /opt/persephone/persephone.sh to check it works correctly.")
+        print("")
+        print("If it does work correctly, then please consider running ./createPersephoneSchedule.py to implement automated regular backups.")
     except Exception as e:
         print(f"Error moving bash script to {TARGET_DIR}: {e}")
 
