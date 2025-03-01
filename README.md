@@ -70,6 +70,7 @@ go get golang.org/x/term
 
 Run the scripts 
 ```
+go run createTimeMachineIncludes.go
 go run createPersephoneFiles.go
 go run createPersephoneConfig.go
 go run createPersephoneRepoS3.go
