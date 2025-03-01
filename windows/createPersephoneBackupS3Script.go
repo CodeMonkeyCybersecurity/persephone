@@ -187,7 +187,7 @@ func main() {
 	persPassValue := getConfirmedValue("PERS_PASSWD_FILE_VALUE", "Enter the password file literal value", defaultPassValue, true)
 
 	// --- Other configuration values ---
-	defaultBackupPaths := `C:\Users,C:\ProgramData,C:\Windows,--exclude "C:\Users\*\AppData\Local\Temp",--exclude "C:\Windows\Temp",--exclude "C:\Windows\WinSxS",--exclude "C:\Users\*\Nextcloud",--exclude "C:\Users\*\OneDrive"`
+        defaultBackupPaths := `C:\Users C:\ProgramData C:\Windows --exclude "C:\Users\*\AppData\Local\Temp" --exclude "C:\Windows\Temp" --exclude "C:\Windows\WinSxS" --exclude "C:/Users/*/Nextcloud" --exclude "C:/Users/*/OneDrive"`
 	if v, ok := config["BACKUP_PATHS_STR"]; ok {
 		defaultBackupPaths = v
 	}
