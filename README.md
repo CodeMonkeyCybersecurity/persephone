@@ -27,9 +27,8 @@ cd persephone
 Install Go and dependencies
 ```
 apt install gcc
-go get golang.org/x/term
+go install golang.org/x/term@latest
 ```
-Build and use Persephone
 
 Run the scripts 
 ```
