@@ -17,7 +17,7 @@ const (
 	BACKUP_SCRIPT_NAME  = "persephone.bat"
 	INSPECT_SCRIPT_NAME = "persephoneInspectSnapshots.bat"
 	// Update the target directory as needed.
-	TARGET_DIR = `C:\Persephone\`
+	TARGET_DIR = `C:\opt\persephone\windows\`
 )
 
 // loadConfig loads configuration from a file with one key="value" per line.
@@ -158,7 +158,7 @@ func main() {
 	fmt.Println("=== Restic Backup Configuration ===")
 
 	// --- Repository file and its value ---
-	defaultRepoFile := `C:\Persephone\persephone-repo.txt`
+	defaultRepoFile := `C:\opt\persephone\windows\persephone-repo.txt`
 	if v, ok := config["PERS_REPO_FILE"]; ok {
 		defaultRepoFile = v
 	}
@@ -171,7 +171,7 @@ func main() {
 	persRepoFileValue := getConfirmedValue("PERS_REPO_FILE_VALUE", "Enter the repository file literal value", defaultRepoValue, false)
 
 	// --- Password file and its value ---
-	defaultPassFile := `C:\Persephone\persephone-passwd.txt`
+	defaultPassFile := `C:\opt\persephone\windows\persephone-passwd.txt`
 	if v, ok := config["PERS_PASSWD_FILE"]; ok {
 		defaultPassFile = v
 	}
@@ -184,7 +184,7 @@ func main() {
 	persPassValue := getConfirmedValue("PERS_PASSWD_FILE_VALUE", "Enter the password file literal value", defaultPassValue, true)
 
 	// --- Other configuration values ---
-	defaultBackupPaths := `C:\Users\Public`
+	defaultBackupPaths := `C:\Users,C:\ProgramData,C:\Windows,--exclude "C:\Users\*\AppData\Local\Temp",--exclude "C:\Windows\Temp",--exclude "C:\Windows\WinSxS",--exclude "C:\Users\*\Nextcloud",--exclude "C:\Users\*\OneDrive`
 	if v, ok := config["BACKUP_PATHS_STR"]; ok {
 		defaultBackupPaths = v
 	}
