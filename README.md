@@ -6,6 +6,17 @@ In Greek mythology, **Persephone** is the goddess of both the underworld and spr
 
 This will currently work only on debian-based systems (eg. Ubuntu, Debian, Kali). **Work is ongoing to expand this to MacOS and Windows.**
 
+# Quick start 
+```
+su
+```
+
+then,
+```
+cd /opt
+git clone https://github.com/CodeMonkeyCybersecurity/persephone.git
+cd persephone
+```
 
 # See out knowledge base, [Athena](https://wiki.cybermonkey.net.au), for more on how to use this.
 
