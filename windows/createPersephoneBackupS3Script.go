@@ -118,16 +118,19 @@ func saveConfig(configFile string, config map[string]string) error {
 // generateBatchScript generates the backup batch script content for Windows.
 func generateBatchScript(config map[string]string) string {
 	hostname, _ := os.Hostname()
+	// Convert comma-separated backup paths into space-separated.
+	backupPaths := config["BACKUP_PATHS_STR"]
+	backupPaths = strings.ReplaceAll(backupPaths, ",", " ")
+
 	// In a batch file, environment variables are set with "set"
 	lines := []string{
 		"@echo off",
 		"",
 		fmt.Sprintf("set AWS_ACCESS_KEY_ID=%s", config["AWS_ACCESS_KEY_ID"]),
 		fmt.Sprintf("set AWS_SECRET_ACCESS_KEY=%s", config["AWS_SECRET_ACCESS_KEY"]),
-		// The restic command uses the repository literal and password file.
-		// For date/time, we include the built-in %DATE% and %TIME% variables.
+		// Now use the space-separated backupPaths.
 		fmt.Sprintf(`restic -r %s --password-file %s backup --verbose %s --tag "%s-%%DATE%-%%TIME%%"`,
-			config["PERS_REPO_FILE_VALUE"], config["PERS_PASSWD_FILE"], config["BACKUP_PATHS_STR"], hostname),
+			config["PERS_REPO_FILE_VALUE"], config["PERS_PASSWD_FILE"], backupPaths, hostname),
 		"echo.",
 		"echo Backup complete.",
 	}
