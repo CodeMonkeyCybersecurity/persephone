@@ -63,7 +63,11 @@ go get golang.org/x/term
 
 Run the scripts 
 ```
-go run ...
+go run createPersephoneFiles.go
+go run createPersephoneConfig.go
+go run createPersephoneRepoS3.go
+go run createPersephoneBackupS3Script.go
+go run createPersephoneSchedule.go
 ```
 
 # Windows 10+
@@ -95,8 +99,18 @@ If you need a C compiler, you may install MinGW or use TDM-GCC.
 
 Run the scripts 
 ```
-go run ...
+go run createPersephoneFiles.go
+go run createPersephoneConfig.go
+go run createPersephoneRepoS3.go
+go run createPersephoneBackupS3Script.go
+go run createPersephoneSchedule.go
 ```
+
+Verify the new scheduled task
+```
+Get-ScheduledTask -TaskName "PersephoneBackupHourly" | Format-List *
+```
+
 
 You can then edit configuration files or use command-line parameters to customize your backup tasks. Consider using the Windows Task Scheduler to automate running Persephone at scheduled intervals.
 
