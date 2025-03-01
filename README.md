@@ -86,6 +86,9 @@ Install Go and dependencies
 Make sure Go for Windows is installed and added to your PATH. Then install the required package by running:
 ```
 winget install --id GoLang.Go
+
+## Open a new pwsh admin tab and check Go installed correctly
+$env:Path -split ';' | Select-String "Go"
 go get golang.org/x/term
 ```
 If you need a C compiler, you may install MinGW or use TDM-GCC.
