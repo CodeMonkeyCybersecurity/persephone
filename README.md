@@ -6,18 +6,93 @@ In Greek mythology, **Persephone** is the goddess of both the underworld and spr
 
 This will currently work only on debian-based systems (eg. Ubuntu, Debian, Kali). **Work is ongoing to expand this to MacOS and Windows.**
 
-# Quick start 
+Below is a completed quickstart guide that fills in the missing “Use Persephone” section and adds instructions for Windows 10+. (Note that you should adjust paths or commands as needed for your particular environment.)
+
+# Quick start
+
+Below are the instructions for installing and using Persephone on UNIX-like systems (except MacOS X), MacOS X, and Windows 10+.
+
+# UNIX-like systems (except MacOS X)
+
+### Become root
 ```
 su
 ```
-
-then,
+Clone Persephone
 ```
 cd /opt
 git clone https://github.com/CodeMonkeyCybersecurity/persephone.git
 cd persephone
 ```
+Install Go and dependencies
+```
+apt install gcc
+go get golang.org/x/term
+```
+Build and use Persephone
 
+Run the scripts 
+```
+go run ...
+```
+
+You can now configure your backup settings (for example, by editing the included configuration file or passing command-line options) and schedule your backups using cron.
+
+# MacOS X
+
+Become root
+```
+su
+```
+Clone Persephone
+```
+cd /opt
+git clone https://github.com/CodeMonkeyCybersecurity/persephone.git
+cd persephone
+```
+Install Go and dependencies
+
+Ensure that you have Homebrew installed, then:
+```
+brew install gcc
+go get golang.org/x/term
+```
+
+Run the scripts 
+```
+go run ...
+```
+
+# Windows 10+
+
+Open an elevated Command Prompt or PowerShell
+
+Right-click your Command Prompt/PowerShell and choose Run as administrator.
+
+Clone Persephone
+
+Ensure you have Git for Windows installed, then:
+```
+cd C:\opt
+git clone https://github.com/CodeMonkeyCybersecurity/persephone.git
+cd persephone
+```
+Install Go and dependencies
+
+Make sure Go for Windows is installed and added to your PATH. Then install the required package by running:
+```
+go get golang.org/x/term
+```
+If you need a C compiler, you may install MinGW or use TDM-GCC.
+
+Run the scripts 
+```
+go run ...
+```
+
+You can then edit configuration files or use command-line parameters to customize your backup tasks. Consider using the Windows Task Scheduler to automate running Persephone at scheduled intervals.
+
+This guide should help you get started with Persephone across different operating systems. Be sure to review the project’s documentation for more details on configuration and advanced usage.
 # See out knowledge base, [Athena](https://wiki.cybermonkey.net.au), for more on how to use this.
 
 # Other links
