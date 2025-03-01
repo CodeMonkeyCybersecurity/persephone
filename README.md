@@ -33,7 +33,11 @@ Build and use Persephone
 
 Run the scripts 
 ```
-go run ...
+go run createPersephoneFiles.go
+go run createPersephoneConfig.go
+go run createPersephoneRepoS3.go
+go run createPersephoneBackupS3Script.go
+go run createPersephoneSchedule.go
 ```
 
 You can now configure your backup settings (for example, by editing the included configuration file or passing command-line options) and schedule your backups using cron.
