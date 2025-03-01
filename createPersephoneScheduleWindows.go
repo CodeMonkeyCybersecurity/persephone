@@ -14,7 +14,7 @@ func main() {
 	startTime := nextHour.Format("15:04") // 24-hour format (HH:MM)
 
 	// Define the scheduled task parameters
-	taskName := "ResticBackupHourly"
+	taskName := "PersephoneBackupHourly"
 	// Adjust the path to your backup script accordingly
 	taskAction := `powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\Scripts\backup.ps1"`
 
