@@ -168,6 +168,7 @@ cython_debug/
 *.key
 *.env
 *.bak
+*.txt
 
 # MacOS
 .DS_Store
