@@ -76,6 +76,7 @@ Clone Persephone
 
 Ensure you have Git for Windows installed, then:
 ```
+mkdir C:\opt
 cd C:\opt
 git clone https://github.com/CodeMonkeyCybersecurity/persephone.git
 cd persephone
