@@ -24,6 +24,10 @@ cd /opt
 git clone https://github.com/CodeMonkeyCybersecurity/persephone.git
 cd persephone
 ```
+Move into unix directory
+```
+cd unix
+```
 Install Go and dependencies
 ```
 apt install gcc
@@ -53,8 +57,11 @@ cd /opt
 git clone https://github.com/CodeMonkeyCybersecurity/persephone.git
 cd persephone
 ```
+Move into macosx directory
+```
+cd macosx
+```
 Install Go and dependencies
-
 Ensure that you have Homebrew installed, then:
 ```
 brew install gcc
@@ -85,6 +92,12 @@ cd C:\opt
 git clone https://github.com/CodeMonkeyCybersecurity/persephone.git
 cd persephone
 ```
+
+Move into windows directory
+```
+cd windows
+```
+
 Install Go and dependencies
 
 Make sure Go for Windows is installed and added to your PATH. Then install the required package by running:
