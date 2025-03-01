@@ -1,78 +1,103 @@
-#!/usr/bin/env python3
-"""
-createPersephoneFiles.py
+package main
 
-- Checks if /root/.restic-repo and /root/.restic-passwd exist.
-- If a file doesn't exist, prompts for its contents and creates it.
-- If a file exists, displays its contents and asks for confirmation.
-- If the contents are not correct, updates the file with new contents provided by the user.
-- Outputs what actions were performed.
-- Prompts the user to then run ./createPersephoneConfig.py and exits.
-"""
+import (
+	"bufio"
+	"fmt"
+	"io/ioutil"
+	"log"
+	"os"
+	"strings"
 
-import os
-import getpass
+	"golang.org/x/term"
+)
 
-# Define file paths.
-REPO_PATH = "/root/.persephone-repo"
-PASSWD_PATH = "/root/.persephone-passwd"
+const (
+	REPO_PATH   = "/root/.persephone-repo"
+	PASSWD_PATH = "/root/.persephone-passwd"
+)
 
-def check_and_update_file(path, description, hidden=False):
-    """
-    Check if file exists and its contents are correct.
-    If not, prompt the user for the correct contents and update the file.
-    
-    Returns the final contents of the file.
-    """
-    file_exists = os.path.exists(path)
-    if file_exists:
-        try:
-            with open(path, "r") as f:
-                current_content = f.read().strip()
-        except Exception as e:
-            print(f"Error reading {description} file at {path}: {e}")
-            current_content = ""
-        print(f"{description} file found at {path}.")
-        print(f"Current contents: {current_content}")
-        response = input(f"Is this correct? (Y/n): ").strip().lower()
-        if response in ["", "y", "yes"]:
-            print(f"No update needed for {description} file.")
-            return current_content
-        else:
-            print(f"Updating {description} file...")
-    else:
-        print(f"{description} file not found at {path}. It will be created.")
+// checkAndUpdateFile checks if a file exists and if its content is correct.
+// If not, it prompts the user for new content (hidden input if needed), writes it to the file,
+// and returns the final content.
+func checkAndUpdateFile(path, description string, hidden bool) string {
+	var currentContent string
 
-    # Prompt for new content
-    if hidden:
-        new_content = getpass.getpass(f"Enter new contents for {description}: ").strip()
-    else:
-        new_content = input(f"Enter new contents for {description}: ").strip()
-    try:
-        with open(path, "w") as f:
-            f.write(new_content + "\n")
-        print(f"{description} file at {path} has been updated.")
-    except Exception as e:
-        print(f"Error writing to {description} file at {path}: {e}")
-    return new_content
+	// Check if file exists.
+	_, err := os.Stat(path)
+	if err == nil {
+		// File exists; read its contents.
+		data, err := ioutil.ReadFile(path)
+		if err != nil {
+			fmt.Printf("Error reading %s file at %s: %v\n", description, path, err)
+		} else {
+			currentContent = strings.TrimSpace(string(data))
+		}
+		fmt.Printf("%s file found at %s.\n", description, path)
+		fmt.Printf("Current contents: %s\n", currentContent)
 
-def main():
-    print("Checking Restic repository and password files...\n")
+		// Prompt for confirmation.
+		fmt.Print("Is this correct? (Y/n): ")
+		reader := bufio.NewReader(os.Stdin)
+		resp, _ := reader.ReadString('\n')
+		resp = strings.TrimSpace(strings.ToLower(resp))
+		if resp == "" || resp == "y" || resp == "yes" {
+			fmt.Printf("No update needed for %s file.\n", description)
+			return currentContent
+		}
+		fmt.Printf("Updating %s file...\n", description)
+	} else {
+		fmt.Printf("%s file not found at %s. It will be created.\n", description, path)
+	}
 
-    repo_content = check_and_update_file(REPO_PATH, "Restic repository")
-    passwd_content = check_and_update_file(PASSWD_PATH, "Restic password", hidden=True)
+	// Prompt for new content.
+	var newContent string
+	if hidden {
+		fmt.Printf("Enter new contents for %s: ", description)
+		byteContent, err := term.ReadPassword(int(os.Stdin.Fd()))
+		fmt.Println()
+		if err != nil {
+			log.Fatalf("Error reading hidden input: %v", err)
+		}
+		newContent = strings.TrimSpace(string(byteContent))
+	} else {
+		fmt.Printf("Enter new contents for %s: ", description)
+		reader := bufio.NewReader(os.Stdin)
+		text, err := reader.ReadString('\n')
+		if err != nil {
+			log.Fatalf("Error reading input: %v", err)
+		}
+		newContent = strings.TrimSpace(text)
+	}
 
-    print("\nSummary of actions:")
-    if repo_content:
-        print(f"- {REPO_PATH} is set with: {repo_content}")
-    else:
-        print(f"- {REPO_PATH} is empty or not set correctly.")
-    if passwd_content:
-        print(f"- {PASSWD_PATH} is set (contents hidden).")
-    else:
-        print(f"- {PASSWD_PATH} is empty or not set correctly.")
-    
-    input("\nPlease run ./createPersephoneConfig.py to continue. Press Enter to exit.")
-    
-if __name__ == "__main__":
-    main()
+	// Write the new content to the file.
+	err = ioutil.WriteFile(path, []byte(newContent+"\n"), 0644)
+	if err != nil {
+		fmt.Printf("Error writing to %s file at %s: %v\n", description, path, err)
+	} else {
+		fmt.Printf("%s file at %s has been updated.\n", description, path)
+	}
+	return newContent
+}
+
+func main() {
+	fmt.Println("Checking Restic repository and password files...\n")
+
+	repoContent := checkAndUpdateFile(REPO_PATH, "Restic repository", false)
+	passwdContent := checkAndUpdateFile(PASSWD_PATH, "Restic password", true)
+
+	// Summary of actions.
+	fmt.Println("\nSummary of actions:")
+	if repoContent != "" {
+		fmt.Printf("- %s is set with: %s\n", REPO_PATH, repoContent)
+	} else {
+		fmt.Printf("- %s is empty or not set correctly.\n", REPO_PATH)
+	}
+	if passwdContent != "" {
+		fmt.Printf("- %s is set (contents hidden).\n", PASSWD_PATH)
+	} else {
+		fmt.Printf("- %s is empty or not set correctly.\n", PASSWD_PATH)
+	}
+
+	fmt.Print("\nPlease run ./createPersephoneConfig.py to continue. Press Enter to exit.")
+	bufio.NewReader(os.Stdin).ReadBytes('\n')
+}
