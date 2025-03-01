@@ -265,5 +265,5 @@ func main() {
 	fmt.Printf("Bash scripts moved to: %s\n\n", TARGET_DIR)
 	fmt.Printf("Please now run %s to check the backup script works correctly.\n", targetBackupPath)
 	fmt.Printf("And run %s to inspect your Persephone snapshots.\n\n", targetInspectPath)
-	fmt.Println("If everything works correctly, consider running ./createPersephoneSchedule.py to implement automated regular backups.")
+	fmt.Println("If everything works correctly, consider running 'go run createPersephoneSchedule.go' to implement automated regular backups.")
 }
