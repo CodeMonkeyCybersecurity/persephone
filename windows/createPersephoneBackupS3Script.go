@@ -17,7 +17,7 @@ const (
 	BACKUP_SCRIPT_NAME  = "persephone.bat"
 	INSPECT_SCRIPT_NAME = "persephoneInspectSnapshots.bat"
 	// Update the target directory as needed.
-	TARGET_DIR = `C:\opt\persephone\windows\`
+	TARGET_DIR = `C:/opt/persephone/windows/`
 )
 
 // loadConfig loads configuration from a file with one key="value" per line.
