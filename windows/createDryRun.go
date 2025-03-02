@@ -117,7 +117,7 @@ func main() {
 		log.Fatalf("Error loading config: %v", err)
 	}
 
-	// Set default values if not provided in config.
+	// Prompt for repository and password file.
 	defaultRepo := "s3:https://persephoneapi.cybermonkey.dev/restic/H-Windows"
 	if val, ok := config["REPO"]; ok {
 		defaultRepo = val
@@ -130,14 +130,32 @@ func main() {
 	}
 	passFile := getConfirmedValue("PASS_FILE", "Enter path to password file", defaultPassFile, false)
 
-	// Update the config map and save changes.
+	// Prompt for AWS credentials.
+	defaultAWSKey := ""
+	if val, ok := config["AWS_ACCESS_KEY_ID"]; ok {
+		defaultAWSKey = val
+	}
+	awsKey := getConfirmedValue("AWS_ACCESS_KEY_ID", "Enter AWS_ACCESS_KEY_ID", defaultAWSKey, false)
+
+	defaultAWSSecret := ""
+	if val, ok := config["AWS_SECRET_ACCESS_KEY"]; ok {
+		defaultAWSSecret = val
+	}
+	awsSecret := getConfirmedValue("AWS_SECRET_ACCESS_KEY", "Enter AWS_SECRET_ACCESS_KEY", defaultAWSSecret, true)
+
+	// Update configuration.
 	config["REPO"] = repo
 	config["PASS_FILE"] = passFile
+	config["AWS_ACCESS_KEY_ID"] = awsKey
+	config["AWS_SECRET_ACCESS_KEY"] = awsSecret
+
+	// Save configuration for future runs.
 	if err := saveConfig(CONFIG_FILE, config); err != nil {
 		log.Printf("Warning: could not save config: %v", err)
 	}
 
 	// Build restic dry-run backup command arguments.
+	// Using forward slashes in paths.
 	args := []string{
 		"--repo", repo,
 		"--password-file", passFile,
@@ -153,8 +171,14 @@ func main() {
 		"--exclude", "C:/Users/*/OneDrive",
 	}
 
-	// Execute the restic command.
+	// Create the restic command.
 	cmd := exec.Command("restic", args...)
+	// Set AWS credentials in the environment.
+	cmd.Env = append(os.Environ(),
+		"AWS_ACCESS_KEY_ID="+awsKey,
+		"AWS_SECRET_ACCESS_KEY="+awsSecret,
+	)
+
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		log.Fatalf("Dry-run backup failed: %v\nOutput:\n%s", err, string(output))
