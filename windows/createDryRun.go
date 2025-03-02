@@ -1,14 +1,19 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"os"
 	"os/exec"
+	"strings"
+
+	"golang.org/x/term"
 )
 
 const (
-	CONFIG_FILE         = ".persephone.conf"
-	TARGET_DIR = `C:/opt/persephone/windows/`
+	CONFIG_FILE = ".persephone.conf"
 )
 
 // loadConfig loads configuration from a file with one key="value" per line.
@@ -55,7 +60,6 @@ func promptInput(promptMessage, defaultVal string, hidden bool) string {
 		fmt.Print(prompt)
 		var input string
 		if hidden {
-			// Read password without echo.
 			byteInput, err := term.ReadPassword(int(os.Stdin.Fd()))
 			fmt.Println()
 			if err != nil {
@@ -107,12 +111,33 @@ func saveConfig(configFile string, config map[string]string) error {
 }
 
 func main() {
-	// Set these values as appropriate for your environment.
-	// Use forward slashes in paths for consistency.
-	repo := "s3:https://persephoneapi.cybermonkey.dev/restic/H-Windows"
-	passFile := `C:/opt/persephone/windows/persephone-passwd.txt`
-	// List the backup paths along with exclude flags as separate arguments.
-	// Note: Adjust the paths/exclusions to match what you want to exclude.
+	// Load configuration.
+	config, err := loadConfig(CONFIG_FILE)
+	if err != nil {
+		log.Fatalf("Error loading config: %v", err)
+	}
+
+	// Set default values if not provided in config.
+	defaultRepo := "s3:https://persephoneapi.cybermonkey.dev/restic/H-Windows"
+	if val, ok := config["REPO"]; ok {
+		defaultRepo = val
+	}
+	repo := getConfirmedValue("REPO", "Enter repository URL", defaultRepo, false)
+
+	defaultPassFile := `C:/opt/persephone/windows/persephone-passwd.txt`
+	if val, ok := config["PASS_FILE"]; ok {
+		defaultPassFile = val
+	}
+	passFile := getConfirmedValue("PASS_FILE", "Enter path to password file", defaultPassFile, false)
+
+	// Update the config map and save changes.
+	config["REPO"] = repo
+	config["PASS_FILE"] = passFile
+	if err := saveConfig(CONFIG_FILE, config); err != nil {
+		log.Printf("Warning: could not save config: %v", err)
+	}
+
+	// Build restic dry-run backup command arguments.
 	args := []string{
 		"--repo", repo,
 		"--password-file", passFile,
@@ -128,7 +153,7 @@ func main() {
 		"--exclude", "C:/Users/*/OneDrive",
 	}
 
-	// Execute the restic backup command in dry-run mode.
+	// Execute the restic command.
 	cmd := exec.Command("restic", args...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
