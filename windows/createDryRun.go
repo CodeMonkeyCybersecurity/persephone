@@ -10,7 +10,7 @@ func main() {
 	// Set these values as appropriate for your environment.
 	// Use forward slashes in paths for consistency.
 	repo := "s3:https://persephoneapi.cybermonkey.dev/restic/H-Windows"
-	passFile := `C:/Persephone/persephone-passwd.txt`
+	passFile := `C:/opt/persephone/persephone-passwd.txt`
 	// List the backup paths along with exclude flags as separate arguments.
 	// Note: Adjust the paths/exclusions to match what you want to exclude.
 	args := []string{
