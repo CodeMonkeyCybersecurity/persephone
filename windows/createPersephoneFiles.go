@@ -14,8 +14,8 @@ import (
 
 // Update these constants with the desired Windows file paths.
 const (
-	REPO_PATH   = "C:/opt/persephone/persephone-repo.txt"
-	PASSWD_PATH = "C:/opt/persephone/persephone-passwd.txt"
+	REPO_PATH   = "C:/opt/persephone/windows/persephone-repo.txt"
+	PASSWD_PATH = "C:/opt/persephone/windows/persephone-passwd.txt"
 )
 
 // checkAndUpdateFile checks if a file exists and if its content is correct.
