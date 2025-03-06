@@ -4,19 +4,20 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 )
 
-// Config file path
+// Configuration file path
 const configFilePath = ".persephone.conf"
 
-// Read configuration file into a map
+// Read the configuration file and return a map of key-value pairs
 func readConfig() (map[string]string, error) {
 	config := make(map[string]string)
 
 	file, err := os.Open(configFilePath)
 	if err != nil {
-		return config, err
+		return nil, err
 	}
 	defer file.Close()
 
@@ -26,103 +27,72 @@ func readConfig() (map[string]string, error) {
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
-
 		parts := strings.SplitN(line, "=", 2)
 		if len(parts) != 2 {
 			continue
 		}
-
 		key := strings.TrimSpace(parts[0])
-		value := strings.Trim(strings.TrimSpace(parts[1]), "\"") // Remove quotes
+		value := strings.Trim(strings.TrimSpace(parts[1]), "\"") // Remove surrounding quotes
 		config[key] = value
 	}
 
 	return config, scanner.Err()
 }
 
-// Write updated config back to the file
-func writeConfig(config map[string]string) error {
-	file, err := os.Create(configFilePath)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
+// Validate credentials by running a Restic command
+func validateCredentials(config map[string]string) bool {
+	repo := config["PERS_REPO_FILE_VALUE"]
+	password := config["PERS_PASSWD_FILE_VALUE"]
+	accessKey := config["AWS_ACCESS_KEY_ID"]
+	secretKey := config["AWS_SECRET_ACCESS_KEY"]
 
-	for key, value := range config {
-		_, err := fmt.Fprintf(file, "%s=\"%s\"\n", key, value)
-		if err != nil {
-			return err
+	if repo == "" || password == "" {
+		fmt.Println("Error: Missing repository URL or password.")
+		return false
+	}
+
+	// Prepare environment variables for Restic
+	env := os.Environ()
+	env = append(env, "RESTIC_REPOSITORY="+repo, "RESTIC_PASSWORD="+password)
+
+	// If it's an S3 repository, add AWS credentials
+	if strings.HasPrefix(repo, "s3:") {
+		if accessKey == "" || secretKey == "" {
+			fmt.Println("Error: S3 repository detected, but AWS credentials are missing.")
+			return false
 		}
+		env = append(env, "AWS_ACCESS_KEY_ID="+accessKey, "AWS_SECRET_ACCESS_KEY="+secretKey)
 	}
-	return nil
-}
 
-// Display all key-value pairs
-func showConfig(config map[string]string) {
-	fmt.Println("Current Persephone Configuration:")
-	for key, value := range config {
-		fmt.Printf("%s=\"%s\"\n", key, value)
+	// Run Restic command to check credentials
+	cmd := exec.Command("restic", "snapshots")
+	cmd.Env = env
+	output, err := cmd.CombinedOutput()
+
+	if err != nil {
+		fmt.Println("Restic authentication failed!")
+		fmt.Println("Error:", err)
+		fmt.Println("Output:", string(output))
+		return false
 	}
-}
 
-// Get user input
-func getUserInput(prompt string) string {
-	fmt.Print(prompt)
-	scanner := bufio.NewScanner(os.Stdin)
-	scanner.Scan()
-	return strings.TrimSpace(scanner.Text())
+	fmt.Println("✅ Credentials are valid. Restic repository is accessible.")
+	fmt.Println("Restic Output:\n", string(output))
+	return true
 }
 
 func main() {
+	fmt.Println("Checking Persephone credentials...")
+
+	// Read config file
 	config, err := readConfig()
 	if err != nil {
-		fmt.Println("Error reading config:", err)
-		return
+		fmt.Println("Error reading config file:", err)
+		os.Exit(1)
 	}
 
-	for {
-		fmt.Println("\nChoose an option:")
-		fmt.Println("1. Read configuration")
-		fmt.Println("2. Create or update a key")
-		fmt.Println("3. Delete a key")
-		fmt.Println("4. Exit")
-		choice := getUserInput("Enter choice: ")
-
-		switch choice {
-		case "1":
-			showConfig(config)
-
-		case "2":
-			key := getUserInput("Enter key to create/update: ")
-			value := getUserInput("Enter value: ")
-			config[key] = value
-			err := writeConfig(config)
-			if err != nil {
-				fmt.Println("Error updating config:", err)
-			} else {
-				fmt.Println("Config updated successfully.")
-			}
-
-		case "3":
-			key := getUserInput("Enter key to delete: ")
-			if _, exists := config[key]; exists {
-				delete(config, key)
-				err := writeConfig(config)
-				if err != nil {
-					fmt.Println("Error deleting key:", err)
-				} else {
-					fmt.Println("Key deleted successfully.")
-				}
-			} else {
-				fmt.Println("Key not found.")
-			}
-
-		case "4":
-			fmt.Println("Exiting.")
-			return
-
-		default:
-			fmt.Println("Invalid choice. Try again.")
-		}
+	// Validate credentials
+	if !validateCredentials(config) {
+		os.Exit(1) // Exit with failure
 	}
 }
