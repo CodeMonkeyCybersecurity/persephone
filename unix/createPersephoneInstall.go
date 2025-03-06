@@ -4,30 +4,23 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strings"
 )
 
-// checkCommand checks if a command is available in PATH
 func checkCommand(cmd string) bool {
 	_, err := exec.LookPath(cmd)
 	return err == nil
 }
 
-// runCommand executes a shell command and outputs progress
 func runCommand(name string, args ...string) error {
 	cmd := exec.Command(name, args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("command failed: %v", err)
-	}
-	return nil
+	return cmd.Run()
 }
 
-// detectPackageManager detects whether apt or yum is available
 func detectPackageManager() string {
-	if checkCommand("apt") {
-		return "apt"
+	if checkCommand("apt-get") {
+		return "apt-get"
 	} else if checkCommand("yum") {
 		return "yum"
 	}
@@ -47,21 +40,25 @@ func main() {
 	pm := detectPackageManager()
 
 	if pm == "" {
-		fmt.Println("No supported package manager found (apt or yum). Exiting.")
+		fmt.Println("No supported package manager found (apt-get or yum). Exiting.")
 		os.Exit(1)
-	}
-
-	var installCmd []string
-	if pm == "apt" {
-		installCmd = []string{"apt", "update", "&&", "apt", "install", "-y", "restic"}
-	} else {
-		installCmd = []string{"yum", "install", "-y", "restic"}
 	}
 
 	fmt.Printf("Using %s to install restic...\n", pm)
-	if err := runCommand(installCmd[0], installCmd[1:]...); err != nil {
-		fmt.Printf("Error installing restic: %v\n", err)
-		os.Exit(1)
+	if pm == "apt-get" {
+		if err := runCommand("apt-get", "update"); err != nil {
+			fmt.Printf("Error updating package lists: %v\n", err)
+			os.Exit(1)
+		}
+		if err := runCommand("apt-get", "install", "-y", "restic"); err != nil {
+			fmt.Printf("Error installing restic: %v\n", err)
+			os.Exit(1)
+		}
+	} else {
+		if err := runCommand("yum", "install", "-y", "restic"); err != nil {
+			fmt.Printf("Error installing restic: %v\n", err)
+			os.Exit(1)
+		}
 	}
 
 	if checkCommand("restic") {
