@@ -256,6 +256,28 @@ func restoreSnapshot(repoFile, passFile, snapshotID string) {
 		fmt.Println("Restoration canceled.")
 		os.Exit(0)
 	}
+	
+	// Prepare environment variables for Restic
+	env := os.Environ()
+	env = append(env,
+		"RESTIC_REPOSITORY="+config["PERS_REPO_FILE_VALUE"],
+		"RESTIC_PASSWORD="+config["PERS_PASSWD_FILE_VALUE"],
+	)
+	
+	// If the repository is S3-based, add AWS credentials
+	if strings.HasPrefix(config["PERS_REPO_FILE_VALUE"], "s3:") {
+		awsKey, keyExists := config["AWS_ACCESS_KEY_ID"]
+		awsSecret, secretExists := config["AWS_SECRET_ACCESS_KEY"]
+	
+		if !keyExists || !secretExists || awsKey == "" || awsSecret == "" {
+		    log.Fatal("Error: S3 repository detected, but AWS credentials are missing from the config.")
+		}
+	
+		env = append(env,
+		    "AWS_ACCESS_KEY_ID="+awsKey,
+		    "AWS_SECRET_ACCESS_KEY="+awsSecret,
+		)
+	}
 
 	fmt.Printf("Running: sudo restic --repository-file=%s --password-file=%s restore %s --target=/\n", repoFile, passFile, snapshotID)
 	
@@ -272,9 +294,11 @@ func restoreSnapshot(repoFile, passFile, snapshotID string) {
 	fmt.Printf("Restoration of snapshot %s completed successfully.\n", snapshotID)
 
 	// Update last restored snapshot in the config
-	config, _ := loadConfig(CONFIG_FILE)
 	config["LAST_RESTORED"] = snapshotID
-	saveConfig(CONFIG_FILE, config)
+	err := saveConfig(CONFIG_FILE, config)
+	if err != nil {
+		log.Fatalf("Error saving last restored snapshot: %v", err)
+	}
 }
 
 func main() {
