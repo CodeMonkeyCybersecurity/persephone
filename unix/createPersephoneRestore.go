@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-const CONFIG_FILE = ".persephone_backup.conf"
+const CONFIG_FILE = ".persephone.conf"
 
 // Snapshot represents a restic snapshot.
 type Snapshot struct {
