@@ -237,7 +237,7 @@ func selectSnapshot(snapshotIDs []string) string {
 }
 
 // restoreSnapshot prompts for confirmation and then restores the selected snapshot.
-func restoreSnapshot(repoFile, passFile, snapshotID string) {
+func restoreSnapshot(repoFile, passFile, snapshotID string, config map[string]string) {
 	reader := bufio.NewReader(os.Stdin)
 	restoreTarget := promptInput("Enter restore target directory", "/", false)
 	fmt.Printf("Starting restoration process for snapshot %s...\n", snapshotID)
@@ -286,8 +286,10 @@ func restoreSnapshot(repoFile, passFile, snapshotID string) {
 		"--password-file", passFile,
 		"restore", snapshotID, "--target", restoreTarget,
 	)
+	cmd.Env = env
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	
 	if err := cmd.Run(); err != nil {
 		log.Fatalf("Error during restoration: %v", err)
 	}
@@ -330,6 +332,6 @@ func main() {
 	selectedSnapshot := selectSnapshot(snapshotIDs)
 
 	// Restore the selected snapshot.
-	restoreSnapshot(repoFile, passFile, selectedSnapshot)
+	restoreSnapshot(repoFile, passFile, selectedSnapshot, config)
 	fmt.Println("Restic restore process complete.")
 }
