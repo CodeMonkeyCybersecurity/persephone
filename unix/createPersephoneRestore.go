@@ -107,9 +107,9 @@ func promptInput(promptMessage, defaultVal string, hidden bool) string {
 
 // ensureConfig checks if required values exist in the config, prompting the user if missing.
 func ensureConfig(config map[string]string) map[string]string {
-	requiredKeys := []string{"PERS_REPO_FILE", "PERS_PASSWD_FILE"}
+	requiredKeys := []string{"PERS_REPO_FILE", "PERS_PASSWD_FILE", "PERS_REPO_FILE_VALUE", "PERS_PASSWD_FILE_VALUE"}
 	for _, key := range requiredKeys {
-		if _, exists := config[key]; !exists {
+		if _, exists := config[key]; !exists || config[key] == "" {
 			hidden := key == "PERS_PASSWD_FILE_VALUE" // Hide password input
 			config[key] = promptInput(fmt.Sprintf("Enter value for %s", key), "", hidden)
 		}
@@ -119,23 +119,48 @@ func ensureConfig(config map[string]string) map[string]string {
 	return config
 }
 
+
+
 // listSnapshots calls restic to list snapshots (in JSON format) and returns the snapshots.
 func listSnapshots(repoFile, passFile string) ([]Snapshot, error) {
-	cmd := exec.Command("sudo", "restic",
-		"--repository-file", repoFile,
-		"--password-file", passFile,
-		"snapshots", "--json",
-	)
-	output, err := cmd.Output()
-	if err != nil {
-		return nil, fmt.Errorf("error retrieving snapshots: %v", err)
-	}
+    // Ensure files exist
+    if _, err := os.Stat(repoFile); os.IsNotExist(err) {
+        log.Fatalf("Error: Repository file %s does not exist.", repoFile)
+    }
+    if _, err := os.Stat(passFile); os.IsNotExist(err) {
+        log.Fatalf("Error: Password file %s does not exist.", passFile)
+    }
 
-	var snapshots []Snapshot
-	if err := json.Unmarshal(output, &snapshots); err != nil {
-		return nil, fmt.Errorf("error parsing JSON output from restic: %v", err)
-	}
-	return snapshots, nil
+    // Ensure files are not empty
+    repoContent, _ := ioutil.ReadFile(repoFile)
+    passContent, _ := ioutil.ReadFile(passFile)
+    if len(strings.TrimSpace(string(repoContent))) == 0 {
+        log.Fatalf("Error: Repository file %s is empty.", repoFile)
+    }
+    if len(strings.TrimSpace(string(passContent))) == 0 {
+        log.Fatalf("Error: Password file %s is empty.", passFile)
+    }
+
+    cmd := exec.Command("sudo", "restic",
+        "--repository-file", repoFile,
+        "--password-file", passFile,
+        "snapshots", "--json",
+    )
+
+    output, err := cmd.CombinedOutput()
+    if err != nil {
+        log.Fatalf("Error retrieving snapshots: %v\nFull Output:\n%s", err, string(output))
+    }
+
+    fmt.Println("Raw restic snapshots output:", string(output)) // Debugging output
+
+    var snapshots []Snapshot
+    err = json.Unmarshal(output, &snapshots)
+    if err != nil {
+        log.Fatalf("Error parsing JSON: %v\nRestic Output: %s", err, string(output))
+    }
+
+    return snapshots, nil
 }
 
 // displaySnapshots prints a numbered list of snapshots.
