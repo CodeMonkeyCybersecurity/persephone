@@ -6,7 +6,7 @@ In Greek mythology, **Persephone** is the goddess of both the underworld and spr
 
 This will currently work only on debian-based systems (eg. Ubuntu, Debian, Kali). **Work is ongoing to expand this to MacOS and Windows.**
 
-Below is a completed quickstart guide that fills in the missing “Use Persephone” section and adds instructions for Windows 10+. (Note that you should adjust paths or commands as needed for your particular environment.)
+Below is a quickstart guide.
 
 # Quick start
 
@@ -28,9 +28,15 @@ Move into unix directory
 ```
 cd unix
 ```
-Install Go and dependencies
+Install Go and dependencies (APT)
 ```
 apt install gcc
+go install golang.org/x/term@latest
+```
+
+Install Go and dependencies (Yum)
+```
+yum install gcc
 go install golang.org/x/term@latest
 ```
 
