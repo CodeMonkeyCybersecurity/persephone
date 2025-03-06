@@ -23,6 +23,22 @@ type Snapshot struct {
 	Paths   []string `json:"paths"`
 }
 
+func checkResticInstalled() {
+	cmd := exec.Command("which", "restic")
+	err := cmd.Run()
+	if err != nil {
+		log.Fatal("Error: Restic is not installed or not in PATH.")
+	}
+}
+
+func checkSudoPermissions() {
+	cmd := exec.Command("sudo", "-n", "true")
+	err := cmd.Run()
+	if err != nil {
+		log.Fatal("Error: This script requires sudo privileges, but `sudo` requires a password.")
+	}
+}
+
 // loadConfig reads a config file (key="value" per line) and returns a map.
 func loadConfig(configFile string) (map[string]string, error) {
 	config := make(map[string]string)
@@ -59,7 +75,11 @@ func saveConfig(configFile string, config map[string]string) error {
 		lines = append(lines, fmt.Sprintf(`%s="%s"`, key, value))
 	}
 	data := strings.Join(lines, "\n")
-	return ioutil.WriteFile(configFile, []byte(data), 0644)
+	err := ioutil.WriteFile(configFile, []byte(data), 0644)
+	if err != nil {
+		log.Fatalf("Error writing to config file: %v", err)
+	}
+	return nil
 }
 
 // promptInput prompts the user for input with an optional default value.
@@ -209,6 +229,12 @@ func selectSnapshot(snapshotIDs []string) string {
 func restoreSnapshot(repoFile, passFile, snapshotID string) {
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Printf("Starting restoration process for snapshot %s...\n", snapshotID)
+
+	// Double-check that the snapshot exists before restoring
+	if snapshotID == "" {
+		log.Fatal("Error: Invalid snapshot ID. Cannot restore.")
+	}
+	
 	fmt.Printf("Are you sure you want to restore this snapshot? This may overwrite existing files. (y/N): ")
 	confirm, _ := reader.ReadString('\n')
 	confirm = strings.ToLower(strings.TrimSpace(confirm))
@@ -217,6 +243,8 @@ func restoreSnapshot(repoFile, passFile, snapshotID string) {
 		os.Exit(0)
 	}
 
+	fmt.Printf("Running: sudo restic --repository-file=%s --password-file=%s restore %s --target=/\n", repoFile, passFile, snapshotID)
+	
 	cmd := exec.Command("sudo", "restic",
 		"--repository-file", repoFile,
 		"--password-file", passFile,
@@ -236,6 +264,9 @@ func restoreSnapshot(repoFile, passFile, snapshotID string) {
 }
 
 func main() {
+	checkResticInstalled()  // Ensure Restic is available
+	checkSudoPermissions()   // Ensure sudo works without password prompt
+	
 	// Load configuration.
 	config, err := loadConfig(CONFIG_FILE)
 	if err != nil {
