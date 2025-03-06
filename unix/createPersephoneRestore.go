@@ -4,11 +4,14 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
+
+	"golang.org/x/term"
 )
 
 const CONFIG_FILE = ".persephone.conf"
@@ -20,33 +23,100 @@ type Snapshot struct {
 	Paths   []string `json:"paths"`
 }
 
-// loadConfig loads configuration from a file with one key="value" per line.
+// loadConfig reads a config file (key="value" per line) and returns a map.
 func loadConfig(configFile string) (map[string]string, error) {
 	config := make(map[string]string)
-	file, err := os.Open(configFile)
-	if err != nil {
-		return nil, fmt.Errorf("configuration file %s not found", configFile)
+	if _, err := os.Stat(configFile); os.IsNotExist(err) {
+		return config, nil
 	}
-	defer file.Close()
 
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
+	data, err := ioutil.ReadFile(configFile)
+	if err != nil {
+		return nil, err
+	}
+
+	lines := strings.Split(string(data), "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
 		if idx := strings.Index(line, "="); idx != -1 {
 			key := strings.TrimSpace(line[:idx])
 			val := strings.TrimSpace(line[idx+1:])
-			// Remove surrounding quotes if any.
+			// Remove surrounding quotes.
 			val = strings.Trim(val, `"'`)
 			config[key] = val
 		}
 	}
-	if err := scanner.Err(); err != nil {
-		return nil, err
-	}
 	return config, nil
+}
+
+// saveConfig writes the config map to a file.
+func saveConfig(configFile string, config map[string]string) error {
+	var lines []string
+	for key, value := range config {
+		lines = append(lines, fmt.Sprintf(`%s="%s"`, key, value))
+	}
+	data := strings.Join(lines, "\n")
+	return ioutil.WriteFile(configFile, []byte(data), 0644)
+}
+
+// promptInput prompts the user for input with an optional default value.
+// If hidden is true, input is read without echoing.
+func promptInput(promptMessage, defaultVal string, hidden bool) string {
+	reader := bufio.NewReader(os.Stdin)
+	var prompt string
+	if defaultVal != "" {
+		prompt = fmt.Sprintf("%s [%s]: ", promptMessage, defaultVal)
+	} else {
+		prompt = fmt.Sprintf("%s: ", promptMessage)
+	}
+	for {
+		if hidden {
+			fmt.Print(prompt)
+			byteInput, err := term.ReadPassword(int(os.Stdin.Fd()))
+			fmt.Println()
+			if err != nil {
+				log.Printf("Error reading hidden input: %v", err)
+				continue
+			}
+			input := strings.TrimSpace(string(byteInput))
+			if input == "" && defaultVal != "" {
+				return defaultVal
+			} else if input != "" {
+				return input
+			}
+		} else {
+			fmt.Print(prompt)
+			text, err := reader.ReadString('\n')
+			if err != nil {
+				log.Printf("Error reading input: %v", err)
+				continue
+			}
+			input := strings.TrimSpace(text)
+			if input == "" && defaultVal != "" {
+				return defaultVal
+			} else if input != "" {
+				return input
+			}
+		}
+		fmt.Println("Error: Input cannot be empty. Please enter a valid value.")
+	}
+}
+
+// ensureConfig checks if required values exist in the config, prompting the user if missing.
+func ensureConfig(config map[string]string) map[string]string {
+	requiredKeys := []string{"REPO_FILE", "PASS_FILE"}
+	for _, key := range requiredKeys {
+		if _, exists := config[key]; !exists {
+			hidden := key == "PASS_FILE" // Hide password input
+			config[key] = promptInput(fmt.Sprintf("Enter value for %s", key), "", hidden)
+		}
+	}
+	// Save any new values added
+	saveConfig(CONFIG_FILE, config)
+	return config
 }
 
 // listSnapshots calls restic to list snapshots (in JSON format) and returns the snapshots.
@@ -93,7 +163,6 @@ func displaySnapshots(snapshots []Snapshot) []string {
 }
 
 // selectSnapshot prompts the user to choose a snapshot number.
-// Returns the corresponding snapshot short ID.
 func selectSnapshot(snapshotIDs []string) string {
 	reader := bufio.NewReader(os.Stdin)
 	for {
@@ -134,6 +203,11 @@ func restoreSnapshot(repoFile, passFile, snapshotID string) {
 		log.Fatalf("Error during restoration: %v", err)
 	}
 	fmt.Printf("Restoration of snapshot %s completed successfully.\n", snapshotID)
+
+	// Update last restored snapshot in the config
+	config, _ := loadConfig(CONFIG_FILE)
+	config["LAST_RESTORED"] = snapshotID
+	saveConfig(CONFIG_FILE, config)
 }
 
 func main() {
@@ -142,11 +216,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error loading config: %v\n", err)
 	}
-	repoFile, repoOk := config["REPO_FILE"]
-	passFile, passOk := config["PASS_FILE"]
-	if !repoOk || !passOk {
-		log.Fatal("Missing REPO_FILE or PASS_FILE in configuration. Exiting.")
-	}
+
+	// Ensure required config values exist.
+	config = ensureConfig(config)
+
+	repoFile := config["REPO_FILE"]
+	passFile := config["PASS_FILE"]
 
 	fmt.Println("Checking Restic backup and snapshots...\n")
 
