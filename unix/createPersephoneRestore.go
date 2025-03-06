@@ -12,6 +12,8 @@ import (
 	"strings"
 
 	"golang.org/x/term"
+	"golang.org/x/sys/unix"
+
 )
 
 const CONFIG_FILE = ".persephone.conf"
@@ -40,8 +42,8 @@ func checkSudoPermissions() {
 }
 
 func checkDiskSpace(targetPath string) {
-	var stat syscall.Statfs_t
-	err := syscall.Statfs(targetPath, &stat)
+	var stat unix.Statfs_t
+	err := unix.Statfs(targetPath, &stat)
 	if err != nil {
 		log.Fatalf("Error checking disk space: %v", err)
 	}
