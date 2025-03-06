@@ -107,10 +107,10 @@ func promptInput(promptMessage, defaultVal string, hidden bool) string {
 
 // ensureConfig checks if required values exist in the config, prompting the user if missing.
 func ensureConfig(config map[string]string) map[string]string {
-	requiredKeys := []string{"REPO_FILE", "PASS_FILE"}
+	requiredKeys := []string{"PERS_REPO_FILE", "PERS_PASSWD_FILE"}
 	for _, key := range requiredKeys {
 		if _, exists := config[key]; !exists {
-			hidden := key == "PASS_FILE" // Hide password input
+			hidden := key == "PERS_PASSWD_FILE_VALUE" // Hide password input
 			config[key] = promptInput(fmt.Sprintf("Enter value for %s", key), "", hidden)
 		}
 	}
@@ -220,8 +220,8 @@ func main() {
 	// Ensure required config values exist.
 	config = ensureConfig(config)
 
-	repoFile := config["REPO_FILE"]
-	passFile := config["PASS_FILE"]
+	repoFile := config["PERS_REPO_FILE"]
+	passFile := config["PERS_PASSWD_FILE"]
 
 	fmt.Println("Checking Restic backup and snapshots...\n")
 
