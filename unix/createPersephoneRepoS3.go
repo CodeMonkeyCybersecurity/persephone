@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	CONFIG_FILE = ".persephone_backup.conf"
+	CONFIG_FILE = ".persephone.conf"
 )
 
 // loadConfig reads a config file (key="value" per line) and returns a map.
