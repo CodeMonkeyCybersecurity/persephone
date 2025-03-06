@@ -24,7 +24,7 @@ type Snapshot struct {
 }
 
 func checkResticInstalled() {
-	cmd := exec.Command("which", "restic")
+	cmd := exec.Command("sh", "-c", "command -v restic")
 	err := cmd.Run()
 	if err != nil {
 		log.Fatal("Error: Restic is not installed or not in PATH.")
@@ -151,33 +151,29 @@ func listSnapshots(repoFile, passFile string) ([]Snapshot, error) {
         log.Fatalf("Error: Password file %s does not exist.", passFile)
     }
 
-    // Ensure files are not empty
-    repoContent, _ := ioutil.ReadFile(repoFile)
-    passContent, _ := ioutil.ReadFile(passFile)
-    if len(strings.TrimSpace(string(repoContent))) == 0 {
-        log.Fatalf("Error: Repository file %s is empty.", repoFile)
-    }
-    if len(strings.TrimSpace(string(passContent))) == 0 {
-        log.Fatalf("Error: Password file %s is empty.", passFile)
-    }
-
     cmd := exec.Command("sudo", "restic",
         "--repository-file", repoFile,
         "--password-file", passFile,
         "snapshots", "--json",
     )
 
-    output, err := cmd.CombinedOutput()
+    stdout, err := cmd.StdoutPipe()
     if err != nil {
-        log.Fatalf("Error retrieving snapshots: %v\nFull Output:\n%s", err, string(output))
+        log.Fatalf("Error creating pipe for Restic output: %v", err)
     }
 
-    fmt.Println("Raw restic snapshots output:", string(output)) // Debugging output
+    if err := cmd.Start(); err != nil {
+        log.Fatalf("Error starting Restic process: %v", err)
+    }
 
     var snapshots []Snapshot
-    err = json.Unmarshal(output, &snapshots)
-    if err != nil {
-        log.Fatalf("Error parsing JSON: %v\nRestic Output: %s", err, string(output))
+    decoder := json.NewDecoder(stdout)
+    if err := decoder.Decode(&snapshots); err != nil {
+        log.Fatalf("Error parsing JSON from Restic: %v", err)
+    }
+
+    if err := cmd.Wait(); err != nil {
+        log.Fatalf("Restic process failed: %v", err)
     }
 
     return snapshots, nil
