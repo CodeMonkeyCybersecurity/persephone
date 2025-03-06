@@ -39,6 +39,19 @@ func checkSudoPermissions() {
 	}
 }
 
+func checkDiskSpace(targetPath string) {
+	var stat syscall.Statfs_t
+	err := syscall.Statfs(targetPath, &stat)
+	if err != nil {
+		log.Fatalf("Error checking disk space: %v", err)
+	}
+
+	availableSpace := stat.Bavail * uint64(stat.Bsize) // Available space in bytes
+	if availableSpace < 500*1024*1024 { // Less than 500MB free
+		log.Fatal("Error: Not enough free space to restore snapshot.")
+	}
+}
+
 // loadConfig reads a config file (key="value" per line) and returns a map.
 func loadConfig(configFile string) (map[string]string, error) {
 	config := make(map[string]string)
@@ -224,12 +237,15 @@ func selectSnapshot(snapshotIDs []string) string {
 // restoreSnapshot prompts for confirmation and then restores the selected snapshot.
 func restoreSnapshot(repoFile, passFile, snapshotID string) {
 	reader := bufio.NewReader(os.Stdin)
+	restoreTarget := promptInput("Enter restore target directory", "/", false)
 	fmt.Printf("Starting restoration process for snapshot %s...\n", snapshotID)
 
 	// Double-check that the snapshot exists before restoring
 	if snapshotID == "" {
 		log.Fatal("Error: Invalid snapshot ID. Cannot restore.")
 	}
+	
+	checkDiskSpace("/") // Ensure at least 500MB free
 	
 	fmt.Printf("Are you sure you want to restore this snapshot? This may overwrite existing files. (y/N): ")
 	confirm, _ := reader.ReadString('\n')
@@ -244,7 +260,7 @@ func restoreSnapshot(repoFile, passFile, snapshotID string) {
 	cmd := exec.Command("sudo", "restic",
 		"--repository-file", repoFile,
 		"--password-file", passFile,
-		"restore", snapshotID, "--target", "/",
+		"restore", snapshotID, "--target", restoreTarget,
 	)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
