@@ -296,5 +296,5 @@ func main() {
 	}
 	writer.Flush()
 	fmt.Printf("\nConfiguration successfully saved to %s.\n\n", CONFIG_FILE)
-	fmt.Println("please now run ./createPersephoneBackupS3Script.py to create the backup script.\n")
+	fmt.Println("please now run 'go run createPersephoneBackupS3Script.go' to create the backup script.\n")
 }
