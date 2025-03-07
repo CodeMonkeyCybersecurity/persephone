@@ -31,6 +31,7 @@ cd unix
 Install Go and dependencies (APT)
 ```
 apt install gcc
+apt install golang-go
 go install golang.org/x/term@latest
 ```
 
