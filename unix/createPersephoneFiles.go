@@ -98,6 +98,6 @@ func main() {
 		fmt.Printf("- %s is empty or not set correctly.\n", PASSWD_PATH)
 	}
 
-	fmt.Print("\nPlease run ./createPersephoneConfig.py to continue. Press Enter to exit.")
+	fmt.Print("\nPlease run 'go run createPersephoneConfig.go' to continue. Press Enter to exit.")
 	bufio.NewReader(os.Stdin).ReadBytes('\n')
 }
