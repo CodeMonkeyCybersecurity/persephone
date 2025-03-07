@@ -208,20 +208,24 @@ func main() {
 	}
 	// Process other configuration values.
 	for key, info := range configPrompts {
-		var value string
-		// For file values, use the specialized function.
-		if info.IsFile {
-			// Use the pre-existing value if found.
-			defaultVal := existingConfig[key]
-			if defaultVal == "" {
-				defaultVal = ""
-			}
-			value = getConfirmedFileValue(defaultVal, info.Prompt, info.Hidden)
-		} else {
-			defaultVal := existingConfig[key]
-			value = getInput(info.Prompt+": ", defaultVal, info.Hidden, info.Confirm)
-		}
-		config[key] = value
+	    var value string
+	    if info.IsFile {
+	        // For file content keys, determine the proper file path.
+	        var filePath string
+	        switch key {
+	        case "PERS_REPO_FILE_VALUE":
+	            filePath = config["PERS_REPO_FILE"]  // use the confirmed repository file path
+	        case "PERS_PASSWD_FILE_VALUE":
+	            filePath = config["PERS_PASSWD_FILE"]  // use the confirmed password file path
+	        default:
+	            filePath = existingConfig[key]  // fallback, if any
+	        }
+	        value = getConfirmedFileValue(filePath, info.Prompt, info.Hidden)
+	    } else {
+	        defaultVal := existingConfig[key]
+	        value = getInput(info.Prompt+": ", defaultVal, info.Hidden, info.Confirm)
+	    }
+	    config[key] = value
 	}
 
 	// Write the new configuration to the config file.
