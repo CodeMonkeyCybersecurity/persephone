@@ -30,8 +30,7 @@ cd unix
 ```
 Install Go and dependencies (APT)
 ```
-apt install gcc
-apt install golang-go
+apt install -y gcc golang-go
 go install golang.org/x/term@latest
 ```
 
