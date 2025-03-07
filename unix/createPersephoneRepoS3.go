@@ -145,7 +145,11 @@ func ensureFileExists(filePath, promptMessage string, hidden bool) error {
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		fmt.Printf("\nFile '%s' not found.\n", filePath)
 		// Ensure parent directory exists.
-		parentDir := filepath.Dir(filepath.Abs(filePath))
+		absPath, err := filepath.Abs(filePath)
+		if err != nil {
+		    return fmt.Errorf("failed to get absolute path: %w", err)
+		}
+		parentDir := filepath.Dir(absPath)
 		if parentDir != "" {
 			os.MkdirAll(parentDir, 0755)
 		}
