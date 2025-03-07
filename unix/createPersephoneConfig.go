@@ -14,7 +14,9 @@ import (
 
 const CONFIG_FILE = ".persephone.conf"
 
-// Reads a key-value formatted config file into a map.
+//
+// loadConfig loads a key="value" file into a map.
+//
 func loadConfig(configFile string) map[string]string {
 	config := make(map[string]string)
 	data, err := os.ReadFile(configFile)
@@ -34,7 +36,9 @@ func loadConfig(configFile string) map[string]string {
 	return config
 }
 
-// Creates a timestamped backup of an existing configuration file.
+//
+// backupExistingConfig creates a backup of the config file if it exists.
+//
 func backupExistingConfig(configFile string) {
 	if _, err := os.Stat(configFile); err == nil {
 		backupFile := fmt.Sprintf("%s.%s.bak", configFile, time.Now().Format("20060102_150405"))
@@ -44,7 +48,11 @@ func backupExistingConfig(configFile string) {
 	}
 }
 
-// Generalized function to get user input with optional password masking and confirmation.
+//
+// getInput prompts the user for input.
+// If 'hidden' is true the input will not be echoed.
+// If 'confirm' is true, the user is asked to confirm the input.
+//
 func getInput(prompt, defaultVal string, hidden, confirm bool) string {
 	for {
 		fmt.Print(prompt)
@@ -68,44 +76,57 @@ func getInput(prompt, defaultVal string, hidden, confirm bool) string {
 		if !confirm {
 			return input
 		}
-		fmt.Print("Confirm: ")
-		if confirmInput := getInput("", "", hidden, false); confirmInput == input {
+		confirmInput := getInput("Confirm: ", "", hidden, false)
+		if confirmInput == input {
 			return input
 		}
 		fmt.Println("Inputs do not match. Try again.")
 	}
 }
 
-// Ensures a configuration file exists with a valid value.
+//
+// getConfirmedFileValue ensures that a file exists with the proper content.
+// If the file exists, its content is shown and the user is asked if it is correct.
+// If not, the user is prompted to enter a new value which is then written to the file.
+//
 func getConfirmedFileValue(filePath, description string, isPassword bool) string {
 	if data, err := os.ReadFile(filePath); err == nil {
 		currentValue := strings.TrimSpace(string(data))
-		fmt.Printf("%s found at '%s' with content:\n  %s\n", description, filePath, currentValue)
-		if getInput("Is this correct? (Y/n): ", "Y", false, false) == "Y" {
+		fmt.Printf("%s file found at '%s' with content:\n  %s\n", description, filePath, currentValue)
+		confirm := getInput(fmt.Sprintf("Is this the correct value for %s? (Y/n): ", description), "Y", false, false)
+		if strings.EqualFold(confirm, "y") || confirm == "" || strings.EqualFold(confirm, "yes") {
 			return currentValue
 		}
+		fmt.Printf("Updating %s file...\n", description)
+	} else {
+		fmt.Printf("%s file not found at %s. It will be created.\n", description, filePath)
 	}
-	newValue := getInput(fmt.Sprintf("Enter value for %s: ", description), "", isPassword, isPassword)
+	newValue := getInput(fmt.Sprintf("Enter new literal value for %s: ", description), "", isPassword, isPassword)
 	os.MkdirAll(filepath.Dir(filePath), 0755)
-	os.WriteFile(filePath, []byte(newValue+"\n"), 0644)
-	fmt.Printf("Updated %s at %s\n", description, filePath)
+	if err := os.WriteFile(filePath, []byte(newValue+"\n"), 0644); err != nil {
+		fmt.Printf("Error updating %s file at %s: %v\n", description, filePath, err)
+	} else {
+		fmt.Printf("Updated %s file at %s.\n", description, filePath)
+	}
 	return newValue
 }
 
+//
+// main runs the configuration process.
+//
 func main() {
 	existingConfig := loadConfig(CONFIG_FILE)
 	backupExistingConfig(CONFIG_FILE)
 
-	// Define configuration prompts
+	// Define a configuration map for most settings.
 	configPrompts := map[string]struct {
-		Prompt    string
-		Default   string
-		Hidden    bool
-		Confirm   bool
-		IsFile    bool
+		Prompt  string
+		Default string
+		Hidden  bool
+		Confirm bool
+		IsFile  bool
 	}{
 		"PERS_REPO_FILE":         {"Enter the repository file path", "/root/.persephone-repo", false, false, false},
-		"PERS_PASSWD_FILE":       {"Enter the password file path", "/root/.persephone-passwd", false, false, false},
 		"BACKUP_PATHS_STR":       {"Enter backup paths (space-separated)", "/root /home /var /etc /srv /usr /opt", false, false, false},
 		"AWS_ACCESS_KEY_ID":      {"Enter AWS Access Key", "", false, false, false},
 		"AWS_SECRET_ACCESS_KEY":  {"Enter AWS Secret Key", "", true, true, false},
@@ -114,13 +135,49 @@ func main() {
 	}
 
 	config := make(map[string]string)
-	for key, info := range configPrompts {
-		defaultVal := existingConfig[key]
-		if info.IsFile {
-			config[key] = getConfirmedFileValue(defaultVal, info.Prompt, info.Hidden)
+
+	// Special handling for the password file path.
+	{
+		const defaultPasswdFile = "/root/.persephone-passwd"
+		var defaultVal string
+		if val, ok := existingConfig["PERS_PASSWD_FILE"]; ok && val != "" {
+			defaultVal = val
 		} else {
-			config[key] = getInput(info.Prompt+": ", defaultVal, info.Hidden, info.Confirm)
+			defaultVal = defaultPasswdFile
 		}
+		// Ask the user if they want to use the default/existing value.
+		confirmPrompt := fmt.Sprintf("Do you want to use the %s password file path (%s) [Y/n]: ",
+			func() string {
+				if _, ok := existingConfig["PERS_PASSWD_FILE"]; ok {
+					return "existing"
+				}
+				return "default"
+			}(),
+			defaultVal)
+		confirm := getInput(confirmPrompt, "Y", false, false)
+		if strings.EqualFold(confirm, "y") || confirm == "" || strings.EqualFold(confirm, "yes") {
+			config["PERS_PASSWD_FILE"] = defaultVal
+		} else {
+			config["PERS_PASSWD_FILE"] = getInput("Enter new password file path: ", defaultVal, false, false)
+		}
+	}
+
+	// Process other configuration values.
+	for key, info := range configPrompts {
+		var value string
+		// For file values, use the specialized function.
+		if info.IsFile {
+			// Use the pre-existing value if found.
+			defaultVal := existingConfig[key]
+			if defaultVal == "" {
+				defaultVal = ""
+			}
+			value = getConfirmedFileValue(defaultVal, info.Prompt, info.Hidden)
+		} else {
+			defaultVal := existingConfig[key]
+			value = getInput(info.Prompt+": ", defaultVal, info.Hidden, info.Confirm)
+		}
+		config[key] = value
 	}
 
 	// Write the new configuration to the config file.
