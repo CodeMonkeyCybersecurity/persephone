@@ -296,5 +296,6 @@ func main() {
 	}
 	writer.Flush()
 	fmt.Printf("\nConfiguration successfully saved to %s.\n\n", CONFIG_FILE)
-	fmt.Println("please now run 'go run createPersephoneBackupS3Script.go' to create the backup script.\n")
+	fmt.Println("Please now run 'go run createPersephoneRepoS3.go' to initialise the Persephone respository if it hasn't already been done.\n")
+	fmt.Println("Then, run 'go run createPersephoneBackupS3Script.go' to create the backup script.\n")
 }
