@@ -89,24 +89,27 @@ func getInput(prompt, defaultVal string, hidden, confirm bool) string {
 // If the file exists, its content is shown and the user is asked if it is correct.
 // If not, the user is prompted to enter a new value which is then written to the file.
 //
-func getConfirmedFileValue(filePath, description string, isPassword bool) string {
+func getConfirmedFileValue(filePath, prompt string, isPassword bool) string {
+	// Attempt to read the file
 	if data, err := os.ReadFile(filePath); err == nil {
 		currentValue := strings.TrimSpace(string(data))
-		fmt.Printf("%s file found at '%s' with content:\n  %s\n", description, filePath, currentValue)
-		confirm := getInput(fmt.Sprintf("Is this the correct value for %s? (Y/n): ", description), "Y", false, false)
+		// Print the prompt and the current file content
+		fmt.Printf("%s\n  %s\n", prompt, currentValue)
+		confirm := getInput("Your answer: ", "Y", false, false)
 		if strings.EqualFold(confirm, "y") || confirm == "" || strings.EqualFold(confirm, "yes") {
 			return currentValue
 		}
-		fmt.Printf("Updating %s file...\n", description)
+		fmt.Printf("Updating file at %s...\n", filePath)
 	} else {
-		fmt.Printf("%s file not found at %s. It will be created.\n", description, filePath)
+		fmt.Printf("File not found at %s. It will be created.\n", filePath)
 	}
-	newValue := getInput(fmt.Sprintf("Enter new literal value for %s: ", description), "", isPassword, isPassword)
+	// Prompt for new value if needed
+	newValue := getInput("Enter new value: ", "", isPassword, isPassword)
 	os.MkdirAll(filepath.Dir(filePath), 0755)
 	if err := os.WriteFile(filePath, []byte(newValue+"\n"), 0644); err != nil {
-		fmt.Printf("Error updating %s file at %s: %v\n", description, filePath, err)
+		fmt.Printf("Error updating file at %s: %v\n", filePath, err)
 	} else {
-		fmt.Printf("Updated %s file at %s.\n", description, filePath)
+		fmt.Printf("Updated file at %s.\n", filePath)
 	}
 	return newValue
 }
@@ -126,10 +129,14 @@ func main() {
 		Confirm bool
 		IsFile  bool
 	}{
+		// These keys are handled separately so they're removed from this map:
+		// "PERS_REPO_FILE",
+		// "BACKUP_PATHS_STR",
+		// "PERS_PASSWD_FILE",
 		"AWS_ACCESS_KEY_ID":     {"Enter AWS Access Key", "", false, false, false},
 		"AWS_SECRET_ACCESS_KEY": {"Enter AWS Secret Key", "", true, true, false},
-		"PERS_REPO_FILE_VALUE":  {"Confirm repository file contents", "", false, false, true},
-		"PERS_PASSWD_FILE_VALUE":{"Confirm password file contents", "", true, true, true},
+		"PERS_REPO_FILE_VALUE":  {"Please make sure this is the correct address for your Persephone repository (Y/n):", "", false, false, true},
+		"PERS_PASSWD_FILE_VALUE": {"Please confirm your Persephone repository password (Y/n):", "", true, true, true},
 	}
 
 	config := make(map[string]string)
