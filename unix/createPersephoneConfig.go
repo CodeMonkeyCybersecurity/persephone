@@ -126,12 +126,11 @@ func main() {
 		Confirm bool
 		IsFile  bool
 	}{
-		"PERS_REPO_FILE":         {"Enter the repository file path", "/root/.persephone-repo", false, false, false},
-		"BACKUP_PATHS_STR":       {"Enter backup paths (space-separated)", "/root /home /var /etc /srv /usr /opt", false, false, false},
-		"AWS_ACCESS_KEY_ID":      {"Enter AWS Access Key", "", false, false, false},
-		"AWS_SECRET_ACCESS_KEY":  {"Enter AWS Secret Key", "", true, true, false},
-		"PERS_REPO_FILE_VALUE":   {"Confirm repository file contents", "", false, false, true},
-		"PERS_PASSWD_FILE_VALUE": {"Confirm password file contents", "", true, true, true},
+		"PERS_REPO_FILE":        {"Enter the repository file path", "/root/.persephone-repo", false, false, false},
+		"AWS_ACCESS_KEY_ID":     {"Enter AWS Access Key", "", false, false, false},
+		"AWS_SECRET_ACCESS_KEY": {"Enter AWS Secret Key", "", true, true, false},
+		"PERS_REPO_FILE_VALUE":  {"Confirm repository file contents", "", false, false, true},
+		"PERS_PASSWD_FILE_VALUE":{"Confirm password file contents", "", true, true, true},
 	}
 
 	config := make(map[string]string)
@@ -161,7 +160,30 @@ func main() {
 			config["PERS_PASSWD_FILE"] = getInput("Enter new password file path: ", defaultVal, false, false)
 		}
 	}
-
+	
+	{
+		const defaultBackupPaths = "/root /home /var /etc /srv /usr /opt"
+		var defaultVal string
+		if val, ok := existingConfig["BACKUP_PATHS_STR"]; ok && val != "" {
+			defaultVal = val
+		} else {
+			defaultVal = defaultBackupPaths
+		}
+		confirmPrompt := fmt.Sprintf("Do you want to use the %s backup paths (%s) [Y/n]: ",
+			func() string {
+				if _, ok := existingConfig["BACKUP_PATHS_STR"]; ok {
+					return "existing"
+				}
+				return "default"
+			}(),
+			defaultVal)
+		confirm := getInput(confirmPrompt, "Y", false, false)
+		if strings.EqualFold(confirm, "y") || confirm == "" || strings.EqualFold(confirm, "yes") {
+			config["BACKUP_PATHS_STR"] = defaultVal
+		} else {
+			config["BACKUP_PATHS_STR"] = getInput("Enter new backup paths (space-separated): ", defaultVal, false, false)
+		}
+	}
 	// Process other configuration values.
 	for key, info := range configPrompts {
 		var value string
