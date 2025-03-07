@@ -45,6 +45,58 @@ func loadConfig(configFile string) (map[string]string, error) {
 	return config, nil
 }
 
+// Read repository URL from the file (instead of using --repository-file)
+func readRepoURL(repoFile string) (string, error) {
+	content, err := ioutil.ReadFile(repoFile)
+	if err != nil {
+		return "", fmt.Errorf("error reading repository file: %v", err)
+	}
+
+	repoURL := strings.TrimSpace(string(content))
+	if repoURL == "" {
+		return "", fmt.Errorf("error: repository file %s is empty", repoFile)
+	}
+
+	// Debugging output
+	fmt.Println("🔍 Using Repo URL:", repoURL)
+	return repoURL, nil
+}
+
+// saveConfig saves key-value pairs to the config file.
+func saveConfig(configFile string, config map[string]string) error {
+	var lines []string
+	for key, value := range config {
+		lines = append(lines, fmt.Sprintf(`%s="%s"`, key, value))
+	}
+	data := strings.Join(lines, "\n")
+	return ioutil.WriteFile(configFile, []byte(data), 0644)
+}
+
+// ensureFileExists checks if a file exists, prompts the user for content if missing.
+func ensureFileExists(filePath, promptMessage string, hidden bool) error {
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		fmt.Printf("\nFile '%s' not found.\n", filePath)
+		// Ensure the parent directory exists.
+		absPath, err := filepath.Abs(filePath)
+		if err != nil {
+			return fmt.Errorf("failed to get absolute path: %w", err)
+		}
+		parentDir := filepath.Dir(absPath)
+		if err := os.MkdirAll(parentDir, 0755); err != nil {
+			return fmt.Errorf("failed to create parent directory %s: %w", parentDir, err)
+		}
+
+		content := promptInput(promptMessage, "", hidden)
+		if err := ioutil.WriteFile(filePath, []byte(strings.TrimSpace(content)+"\n"), 0644); err != nil {
+			return err
+		}
+		fmt.Printf("Created file: %s\n", filePath)
+	} else {
+		fmt.Printf("Found file: %s\n", filePath)
+	}
+	return nil
+}
+
 // promptInput prompts the user for input, providing a default when available.
 func promptInput(promptMessage, defaultVal string, hidden bool) string {
 	reader := bufio.NewReader(os.Stdin)
@@ -87,41 +139,6 @@ func promptInput(promptMessage, defaultVal string, hidden bool) string {
 	}
 }
 
-// saveConfig saves key-value pairs to the config file.
-func saveConfig(configFile string, config map[string]string) error {
-	var lines []string
-	for key, value := range config {
-		lines = append(lines, fmt.Sprintf(`%s="%s"`, key, value))
-	}
-	data := strings.Join(lines, "\n")
-	return ioutil.WriteFile(configFile, []byte(data), 0644)
-}
-
-// ensureFileExists checks if a file exists, prompts the user for content if missing.
-func ensureFileExists(filePath, promptMessage string, hidden bool) error {
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		fmt.Printf("\nFile '%s' not found.\n", filePath)
-		// Ensure the parent directory exists.
-		absPath, err := filepath.Abs(filePath)
-		if err != nil {
-			return fmt.Errorf("failed to get absolute path: %w", err)
-		}
-		parentDir := filepath.Dir(absPath)
-		if err := os.MkdirAll(parentDir, 0755); err != nil {
-			return fmt.Errorf("failed to create parent directory %s: %w", parentDir, err)
-		}
-
-		content := promptInput(promptMessage, "", hidden)
-		if err := ioutil.WriteFile(filePath, []byte(strings.TrimSpace(content)+"\n"), 0644); err != nil {
-			return err
-		}
-		fmt.Printf("Created file: %s\n", filePath)
-	} else {
-		fmt.Printf("Found file: %s\n", filePath)
-	}
-	return nil
-}
-
 // main logic
 func main() {
 	// Load existing configuration
@@ -131,9 +148,9 @@ func main() {
 	}
 
 	// Retrieve default values from config or set initial defaults.
-	defaultRepo := config["PERS_REPO_FILE_VALUE"]
+	defaultRepo := config["PERS_REPO_FILE"]
 	if defaultRepo == "" {
-		defaultRepo = "s3:https://s3api.domain.com/restic/$(hostname)"
+		defaultRepo = "/root/.persephone-repo" // Default repo file
 	}
 
 	defaultPassFile := config["PERS_PASSWD_FILE"]
@@ -159,6 +176,12 @@ func main() {
 	awsAccessKey := promptInput("Enter AWS_ACCESS_KEY_ID", defaultAWSAccessKey, false)
 	awsSecretKey := promptInput("Enter AWS_SECRET_ACCESS_KEY", defaultAWSSecretKey, true)
 
+	// Read the actual repository URL from file
+	repoURL, err := readRepoURL(repoFile)
+	if err != nil {
+		log.Fatalf("Error reading repository URL: %v", err)
+	}
+
 	// Update configuration file with the new values.
 	config["PERS_REPO_FILE"] = repoFile
 	config["PERS_PASSWD_FILE"] = passFile
@@ -182,11 +205,11 @@ func main() {
 
 	// Initialize Restic repository if it doesn't exist.
 	fmt.Println("Checking if Restic repository is initialized...")
-	cmd := exec.Command("sudo", "restic", "-r", repoFile, "--password-file", passFile, "snapshots")
+	cmd := exec.Command("sudo", "restic", "-r", repoURL, "--password-file", passFile, "snapshots")
 	cmd.Env = env
 	if err := cmd.Run(); err != nil {
 		fmt.Println("Repository not found or not initialized. Initializing repository...")
-		initCmd := exec.Command("sudo", "restic", "-r", repoFile, "--password-file", passFile, "init")
+		initCmd := exec.Command("sudo", "restic", "-r", repoURL, "--password-file", passFile, "init")
 		initCmd.Env = env
 		initCmd.Stdout = os.Stdout
 		initCmd.Stderr = os.Stderr
@@ -198,19 +221,17 @@ func main() {
 		fmt.Println("Repository is already initialized.")
 	}
 
-	// Prompt user to run backup.
+	// Run the backup.
 	runBackup := promptInput("\nDo you want to run the backup now? (y/n)", "y", false)
 	if strings.ToLower(runBackup) == "y" {
-		backupPaths := strings.Fields(backupPathsStr)
-		backupCmd := []string{"sudo", "restic", "-r", repoFile, "--password-file", passFile, "backup"}
-		backupCmd = append(backupCmd, backupPaths...)
+		backupCmd := exec.Command("sudo", "restic", "-r", repoURL, "--password-file", passFile, "backup")
+		backupCmd.Args = append(backupCmd.Args, strings.Fields(backupPathsStr)...)
 
 		fmt.Println("\nRunning Restic backup...")
-		cmd := exec.Command(backupCmd[0], backupCmd[1:]...)
-		cmd.Env = env
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
+		backupCmd.Env = env
+		backupCmd.Stdout = os.Stdout
+		backupCmd.Stderr = os.Stderr
+		if err := backupCmd.Run(); err != nil {
 			log.Fatalf("Error during backup: %v", err)
 		}
 		fmt.Println("Backup completed successfully.")
