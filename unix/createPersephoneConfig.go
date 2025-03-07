@@ -126,7 +126,6 @@ func main() {
 		Confirm bool
 		IsFile  bool
 	}{
-		"PERS_REPO_FILE":        {"Enter the repository file path", "/root/.persephone-repo", false, false, false},
 		"AWS_ACCESS_KEY_ID":     {"Enter AWS Access Key", "", false, false, false},
 		"AWS_SECRET_ACCESS_KEY": {"Enter AWS Secret Key", "", true, true, false},
 		"PERS_REPO_FILE_VALUE":  {"Confirm repository file contents", "", false, false, true},
@@ -182,6 +181,29 @@ func main() {
 			config["BACKUP_PATHS_STR"] = defaultVal
 		} else {
 			config["BACKUP_PATHS_STR"] = getInput("Enter new backup paths (space-separated): ", defaultVal, false, false)
+		}
+	}
+	{
+		const defaultRepoFile = "/root/.persephone-repo"
+		var defaultVal string
+		if val, ok := existingConfig["PERS_REPO_FILE"]; ok && val != "" {
+			defaultVal = val
+		} else {
+			defaultVal = defaultRepoFile
+		}
+		confirmPrompt := fmt.Sprintf("Do you want to use the %s repository file path (%s) [Y/n]: ",
+			func() string {
+				if _, ok := existingConfig["PERS_REPO_FILE"]; ok {
+					return "existing"
+				}
+				return "default"
+			}(),
+			defaultVal)
+		confirm := getInput(confirmPrompt, "Y", false, false)
+		if strings.EqualFold(confirm, "y") || confirm == "" || strings.EqualFold(confirm, "yes") {
+			config["PERS_REPO_FILE"] = defaultVal
+		} else {
+			config["PERS_REPO_FILE"] = getInput("Enter new repository file path: ", defaultVal, false, false)
 		}
 	}
 	// Process other configuration values.
