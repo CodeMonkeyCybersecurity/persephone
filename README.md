@@ -42,7 +42,6 @@ go install golang.org/x/term@latest
 
 Run the scripts 
 ```
-go run createPersephoneFiles.go
 go run createPersephoneConfig.go
 go run createPersephoneRepoS3.go
 go run createPersephoneBackupS3Script.go
