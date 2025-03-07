@@ -47,19 +47,34 @@ func loadConfig(configFile string) (map[string]string, error) {
 
 // Read repository URL from the file (instead of using --repository-file)
 func readRepoURL(repoFile string) (string, error) {
-	content, err := ioutil.ReadFile(repoFile)
-	if err != nil {
-		return "", fmt.Errorf("error reading repository file: %v", err)
+    // Check if repoFile exists as a file.
+    if _, err := os.Stat(repoFile); err == nil {
+        // File exists: read the repository URL from the file.
+        content, err := ioutil.ReadFile(repoFile)
+        if err != nil {
+            return "", fmt.Errorf("error reading repository file: %v", err)
+        }
+        repoURL := strings.TrimSpace(string(content))
+        if repoURL == "" {
+            return "", fmt.Errorf("error: repository file %s is empty", repoFile)
+        }
+        return repoURL, nil
+    }
+    // File doesn't exist: assume repoFile is the literal repository URL.
+    repoURL := repoFile
+
+    // Expand $(hostname) if present.
+   	if strings.Contains(repoURL, "$(hostname)") {
+		hostname, err := os.Hostname()
+		if err != nil {
+			return "", fmt.Errorf("error getting hostname: %v", err)
+		}
+		repoURL = strings.ReplaceAll(repoURL, "$(hostname)", hostname)
 	}
 
-	repoURL := strings.TrimSpace(string(content))
-	if repoURL == "" {
-		return "", fmt.Errorf("error: repository file %s is empty", repoFile)
-	}
-
-	// Debugging output
-	fmt.Println("🔍 Using Repo URL:", repoURL)
-	return repoURL, nil
+    // Debug output:
+    fmt.Println("🔍 Using Repo URL:", repoURL)
+    return repoURL, nil
 }
 
 // saveConfig saves key-value pairs to the config file.
