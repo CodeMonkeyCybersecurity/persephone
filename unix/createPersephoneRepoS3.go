@@ -182,11 +182,11 @@ func main() {
 
 	// Initialize Restic repository if it doesn't exist.
 	fmt.Println("Checking if Restic repository is initialized...")
-	cmd := exec.Command("sudo", "restic", "--repository", repoFile, "--password-file", passFile, "snapshots")
+	cmd := exec.Command("sudo", "restic", "-r", repoFile, "--password-file", passFile, "snapshots")
 	cmd.Env = env
 	if err := cmd.Run(); err != nil {
 		fmt.Println("Repository not found or not initialized. Initializing repository...")
-		initCmd := exec.Command("sudo", "restic", "--repository", repoFile, "--password-file", passFile, "init")
+		initCmd := exec.Command("sudo", "restic", "-r", repoFile, "--password-file", passFile, "init")
 		initCmd.Env = env
 		initCmd.Stdout = os.Stdout
 		initCmd.Stderr = os.Stderr
@@ -202,7 +202,7 @@ func main() {
 	runBackup := promptInput("\nDo you want to run the backup now? (y/n)", "y", false)
 	if strings.ToLower(runBackup) == "y" {
 		backupPaths := strings.Fields(backupPathsStr)
-		backupCmd := []string{"sudo", "restic", "--repository", repoFile, "--password-file", passFile, "backup"}
+		backupCmd := []string{"sudo", "restic", "-r", repoFile, "--password-file", passFile, "backup"}
 		backupCmd = append(backupCmd, backupPaths...)
 
 		fmt.Println("\nRunning Restic backup...")
