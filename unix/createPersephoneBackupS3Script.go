@@ -39,9 +39,7 @@ func loadConfig(configFile string) (map[string]string, error) {
 		}
 		if idx := strings.Index(line, "="); idx != -1 {
 			key := strings.TrimSpace(line[:idx])
-			val := strings.TrimSpace(line[idx+1:])
-			// Remove surrounding quotes if present.
-			val = strings.Trim(val, `"'`)
+			val := strings.Trim(strings.TrimSpace(line[idx+1:]), `"'`)
 			config[key] = val
 		}
 	}
@@ -63,7 +61,6 @@ func promptInput(promptMessage, defaultVal string, hidden bool) string {
 		fmt.Print(prompt)
 		var input string
 		if hidden {
-			// Read password without echo.
 			byteInput, err := term.ReadPassword(int(os.Stdin.Fd()))
 			fmt.Println()
 			if err != nil {
@@ -88,20 +85,6 @@ func promptInput(promptMessage, defaultVal string, hidden bool) string {
 			fmt.Println("Error: Input cannot be empty. Please enter a valid value.")
 		}
 	}
-}
-
-// getConfirmedValue prompts for a value and asks for confirmation.
-// If the user does not confirm, it re-prompts.
-func getConfirmedValue(key, promptMessage, defaultVal string, hidden bool) string {
-	value := promptInput(promptMessage, defaultVal, hidden)
-	fmt.Printf("%s is set to: %s\n", key, value)
-	confirm := promptInput("Is this correct? (Y/n)", "Y", false)
-	lower := strings.ToLower(confirm)
-	if lower == "" || lower == "y" || lower == "yes" {
-		return value
-	}
-	// Otherwise, prompt again.
-	return promptInput(fmt.Sprintf("Enter new value for %s", key), defaultVal, hidden)
 }
 
 // saveConfig writes the configuration to the config file.
@@ -153,35 +136,35 @@ func main() {
 
 	fmt.Println("=== Restic Backup Configuration ===")
 
-	// --- Repository file and its value ---
+	// --- Repository file and its literal value ---
 	defaultRepoFile := "/root/.persephone-repo"
-	if v, ok := config["PERS_REPO_FILE"]; ok {
+	if v, ok := config["PERS_REPO_FILE"]; ok && v != "" {
 		defaultRepoFile = v
 	}
-	persRepoFile := getConfirmedValue("PERS_REPO_FILE", "Enter the repository file path", defaultRepoFile, false)
+	persRepoFile := promptInput("Enter the repository file path", defaultRepoFile, false)
 
 	defaultRepoValue := "s3:https://persephoneapi.domain.com/repo-name/endpoint-name"
-	if v, ok := config["PERS_REPO_FILE_VALUE"]; ok {
+	if v, ok := config["PERS_REPO_FILE_VALUE"]; ok && v != "" {
 		defaultRepoValue = v
 	}
-	persRepoFileValue := getConfirmedValue("PERS_REPO_FILE_VALUE", "Enter the repository file literal value", defaultRepoValue, false)
+	persRepoFileValue := promptInput("Enter the repository file literal value", defaultRepoValue, false)
 
-	// --- Password file and its value ---
+	// --- Password file and its literal value ---
 	defaultPassFile := "/root/.persephone-passwd"
-	if v, ok := config["PERS_PASSWD_FILE"]; ok {
+	if v, ok := config["PERS_PASSWD_FILE"]; ok && v != "" {
 		defaultPassFile = v
 	}
-	persPassFile := getConfirmedValue("PERS_PASSWD_FILE", "Enter the password file path", defaultPassFile, false)
+	persPassFile := promptInput("Enter the password file path", defaultPassFile, false)
 
 	defaultPassValue := "default-password"
-	if v, ok := config["PERS_PASSWD_FILE_VALUE"]; ok {
+	if v, ok := config["PERS_PASSWD_FILE_VALUE"]; ok && v != "" {
 		defaultPassValue = v
 	}
-	persPassValue := getConfirmedValue("PERS_PASSWD_FILE_VALUE", "Enter the password file literal value", defaultPassValue, true)
+	persPassValue := promptInput("Enter the password file literal value", defaultPassValue, true)
 
 	// --- Other configuration values ---
 	defaultBackupPaths := "/root /home /var /etc /srv /usr /opt"
-	if v, ok := config["BACKUP_PATHS_STR"]; ok {
+	if v, ok := config["BACKUP_PATHS_STR"]; ok && v != "" {
 		defaultBackupPaths = v
 	}
 	backupPathsStr := promptInput("Enter backup paths (space-separated)", defaultBackupPaths, false)
@@ -263,7 +246,7 @@ func main() {
 		return
 	}
 	fmt.Printf("Bash scripts moved to: %s\n\n", TARGET_DIR)
-	fmt.Printf("Please now run %s to check the backup script works correctly.\n", targetBackupPath)
+	fmt.Printf("Please run %s to check the backup script works correctly.\n", targetBackupPath)
 	fmt.Printf("And run %s to inspect your Persephone snapshots.\n\n", targetInspectPath)
-	fmt.Println("If everything works correctly, consider running 'go run createPersephoneSchedule.go' to implement automated regular backups.")
+	fmt.Println("If everything works correctly, consider running 'go run createPersephoneSchedule.go' to set up automated backups.")
 }
