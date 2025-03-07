@@ -33,6 +33,23 @@ func checkResticInstalled() {
 	}
 }
 
+func readRepoFromFile(repoFile string) (string, error) {
+    content, err := ioutil.ReadFile(repoFile)
+    if err != nil {
+        return "", fmt.Errorf("error reading repository file: %v", err)
+    }
+
+    repoURL := strings.TrimSpace(string(content))
+    if repoURL == "" {
+        return "", fmt.Errorf("error: repository file %s is empty", repoFile)
+    }
+	
+    // Debugging output
+    fmt.Println("🔍 Repo URL Read from File:", repoURL)
+	
+    return repoURL, nil
+}
+
 func checkSudoPermissions() {
 	cmd := exec.Command("sudo", "-n", "true")
 	err := cmd.Run()
@@ -158,37 +175,34 @@ func ensureConfig(config map[string]string) map[string]string {
 
 // listSnapshots calls restic to list snapshots (in JSON format) and returns the snapshots.
 func listSnapshots(repoFile, passFile string) ([]Snapshot, error) {
-    // Ensure files exist
-    if _, err := os.Stat(repoFile); os.IsNotExist(err) {
-        log.Fatalf("Error: Repository file %s does not exist.", repoFile)
-    }
-    if _, err := os.Stat(passFile); os.IsNotExist(err) {
-        log.Fatalf("Error: Password file %s does not exist.", passFile)
-    }
+	// Read repository URL manually
+	repoURL, err := readRepoFromFile(repoFile)
+	if err != nil {
+		log.Fatalf("Error: %v", err)
+    	}
 
-    cmd := exec.Command("sudo", "restic",
-        "--repository-file", repoFile,
-        "--password-file", passFile,
-        "snapshots", "--json",
-    )
+    	cmd := exec.Command("sudo", "restic",
+		"-r", repoURL, 
+		"--password-file", passFile,
+		"snapshots", "--json",
+    	)
 
-    stdout, err := cmd.StdoutPipe()
-    if err != nil {
-        log.Fatalf("Error creating pipe for Restic output: %v", err)
-    }
+    	output, err := cmd.CombinedOutput()
+    	if err != nil {
+		log.Fatalf("Error retrieving snapshots: %v\nFull Output:\n%s", err, string(output))
+   	 }
+	
+    	// Debugging output
+    	fmt.Println("🔍 Raw Restic JSON Output:")
+    	fmt.Println(string(output)) // Print what Restic is actually returning
 
-    if err := cmd.Start(); err != nil {
-        log.Fatalf("Error starting Restic process: %v", err)
-    }
+    	var snapshots []Snapshot
+    	err = json.Unmarshal(output, &snapshots)
+    	if err != nil {
+		log.Fatalf("Error parsing JSON: %v\nRestic Output: %s", err, string(output))
 
-    var snapshots []Snapshot
-    decoder := json.NewDecoder(stdout)
-    if err := decoder.Decode(&snapshots); err != nil {
-        log.Fatalf("Error parsing JSON from Restic: %v", err)
-    }
-
-    if err := cmd.Wait(); err != nil {
-        log.Fatalf("Restic process failed: %v", err)
+	os.Setenv("AWS_ACCESS_KEY_ID", config["AWS_ACCESS_KEY_ID"])
+	os.Setenv("AWS_SECRET_ACCESS_KEY", config["AWS_SECRET_ACCESS_KEY"])
     }
 
     return snapshots, nil
@@ -238,69 +252,38 @@ func selectSnapshot(snapshotIDs []string) string {
 
 // restoreSnapshot prompts for confirmation and then restores the selected snapshot.
 func restoreSnapshot(repoFile, passFile, snapshotID string, config map[string]string) {
-	reader := bufio.NewReader(os.Stdin)
-	restoreTarget := promptInput("Enter restore target directory", "/", false)
-	fmt.Printf("Starting restoration process for snapshot %s...\n", snapshotID)
+    repoURL, err := readRepoFromFile(repoFile)
+    if err != nil {
+        log.Fatalf("Error: %v", err)
+    }
 
-	// Double-check that the snapshot exists before restoring
-	if snapshotID == "" {
-		log.Fatal("Error: Invalid snapshot ID. Cannot restore.")
-	}
-	
-	checkDiskSpace("/") // Ensure at least 500MB free
-	
-	fmt.Printf("Are you sure you want to restore this snapshot? This may overwrite existing files. (y/N): ")
-	confirm, _ := reader.ReadString('\n')
-	confirm = strings.ToLower(strings.TrimSpace(confirm))
-	if confirm != "y" && confirm != "yes" {
-		fmt.Println("Restoration canceled.")
-		os.Exit(0)
-	}
-	
-	// Prepare environment variables for Restic
-	env := os.Environ()
-	env = append(env,
-		"RESTIC_REPOSITORY="+config["PERS_REPO_FILE_VALUE"],
-		"RESTIC_PASSWORD="+config["PERS_PASSWD_FILE_VALUE"],
-	)
-	
-	// If the repository is S3-based, add AWS credentials
-	if strings.HasPrefix(config["PERS_REPO_FILE_VALUE"], "s3:") {
-		awsKey, keyExists := config["AWS_ACCESS_KEY_ID"]
-		awsSecret, secretExists := config["AWS_SECRET_ACCESS_KEY"]
-	
-		if !keyExists || !secretExists || awsKey == "" || awsSecret == "" {
-		    log.Fatal("Error: S3 repository detected, but AWS credentials are missing from the config.")
-		}
-	
-		env = append(env,
-		    "AWS_ACCESS_KEY_ID="+awsKey,
-		    "AWS_SECRET_ACCESS_KEY="+awsSecret,
-		)
-	}
+    restoreTarget := promptInput("Enter restore target directory", "/", false)
 
-	fmt.Printf("Running: sudo restic --repository-file=%s --password-file=%s restore %s --target=/\n", repoFile, passFile, snapshotID)
-	
-	cmd := exec.Command("sudo", "restic",
-		"--repository-file", repoFile,
-		"--password-file", passFile,
-		"restore", snapshotID, "--target", restoreTarget,
-	)
-	cmd.Env = env
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	
+    fmt.Printf("Running: sudo restic -r %s --password-file=%s restore %s --target=%s\n", repoURL, passFile, snapshotID, restoreTarget)
+
+    cmd := exec.Command("sudo", "restic",
+        "-r", repoURL,
+        "--password-file", passFile,
+        "restore", snapshotID, "--target", restoreTarget,
+    )
+
+    cmd.Stdout = os.Stdout
+    cmd.Stderr = os.Stderr
+
+
+	os.Setenv("AWS_ACCESS_KEY_ID", config["AWS_ACCESS_KEY_ID"])
+	os.Setenv("AWS_SECRET_ACCESS_KEY", config["AWS_SECRET_ACCESS_KEY"])
+  
 	if err := cmd.Run(); err != nil {
-		log.Fatalf("Error during restoration: %v", err)
-	}
-	fmt.Printf("Restoration of snapshot %s completed successfully.\n", snapshotID)
+        log.Fatalf("Error during restoration: %v", err)
+    }
+    fmt.Printf("Restoration of snapshot %s completed successfully.\n", snapshotID)
 
-	// Update last restored snapshot in the config
-	config["LAST_RESTORED"] = snapshotID
-	err := saveConfig(CONFIG_FILE, config)
-	if err != nil {
-		log.Fatalf("Error saving last restored snapshot: %v", err)
-	}
+    config["LAST_RESTORED"] = snapshotID
+    err = saveConfig(CONFIG_FILE, config)
+    if err != nil {
+        log.Fatalf("Error saving last restored snapshot: %v", err)
+    }
 }
 
 func main() {
