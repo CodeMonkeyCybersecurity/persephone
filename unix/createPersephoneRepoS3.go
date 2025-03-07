@@ -14,13 +14,12 @@ import (
 	"golang.org/x/term"
 )
 
-const (
-	CONFIG_FILE = ".persephone.conf"
-)
+const CONFIG_FILE = ".persephone.conf"
 
-// loadConfig reads a config file (key="value" per line) and returns a map.
+// loadConfig loads key-value pairs from the config file.
 func loadConfig(configFile string) (map[string]string, error) {
 	config := make(map[string]string)
+
 	if _, err := os.Stat(configFile); os.IsNotExist(err) {
 		return config, nil
 	}
@@ -39,16 +38,15 @@ func loadConfig(configFile string) (map[string]string, error) {
 		if idx := strings.Index(line, "="); idx != -1 {
 			key := strings.TrimSpace(line[:idx])
 			val := strings.TrimSpace(line[idx+1:])
-			// Remove surrounding quotes.
 			val = strings.Trim(val, `"'`)
 			config[key] = val
 		}
 	}
+
 	return config, nil
 }
 
-// promptInput prompts the user for input with an optional default value.
-// If hidden is true, input is read without echoing.
+// promptInput prompts the user for input, providing a default when available.
 func promptInput(promptMessage, defaultVal string, hidden bool) string {
 	reader := bufio.NewReader(os.Stdin)
 	var prompt string
@@ -90,7 +88,7 @@ func promptInput(promptMessage, defaultVal string, hidden bool) string {
 	}
 }
 
-// saveConfig writes the config map to a file.
+// saveConfig saves key-value pairs to the config file.
 func saveConfig(configFile string, config map[string]string) error {
 	var lines []string
 	for key, value := range config {
@@ -100,59 +98,20 @@ func saveConfig(configFile string, config map[string]string) error {
 	return ioutil.WriteFile(configFile, []byte(data), 0644)
 }
 
-// repoInitialized checks if the restic repository is initialized by listing snapshots.
-func repoInitialized(repoFile, passFile string, env []string) bool {
-	cmd := exec.Command("sudo", "restic",
-		"--repository-file", repoFile,
-		"--password-file", passFile,
-		"snapshots",
-	)
-	cmd.Env = env
-
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
-
-	if err := cmd.Run(); err != nil {
-		errMsg := stderr.String()
-		if strings.Contains(errMsg, "does not exist") || strings.Contains(errMsg, "open repository") {
-			return false
-		}
-		return false
-	}
-	return true
-}
-
-// initializeRepo runs the restic init command to initialize the repository.
-func initializeRepo(repoFile, passFile string, env []string) error {
-	fmt.Println("Repository not found or not initialized. Initializing repository...")
-	cmd := exec.Command("sudo", "restic",
-		"--repository-file", repoFile,
-		"--password-file", passFile,
-		"init",
-	)
-	cmd.Env = env
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		return err
-	}
-	fmt.Println("Repository initialized successfully.")
-	return nil
-}
-
-// ensureFileExists checks if file exists; if not, prompts for content and creates it.
+// ensureFileExists checks if a file exists, prompts the user for content if missing.
 func ensureFileExists(filePath, promptMessage string, hidden bool) error {
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		fmt.Printf("\nFile '%s' not found.\n", filePath)
-		// Ensure parent directory exists.
+		// Ensure the parent directory exists.
 		absPath, err := filepath.Abs(filePath)
 		if err != nil {
-		    return fmt.Errorf("failed to get absolute path: %w", err)
+			return fmt.Errorf("failed to get absolute path: %w", err)
 		}
 		parentDir := filepath.Dir(absPath)
-		if parentDir != "" {
-			os.MkdirAll(parentDir, 0755)
+		if err := os.MkdirAll(parentDir, 0755); err != nil {
+			return fmt.Errorf("failed to create parent directory %s: %w", parentDir, err)
 		}
+
 		content := promptInput(promptMessage, "", hidden)
 		if err := ioutil.WriteFile(filePath, []byte(strings.TrimSpace(content)+"\n"), 0644); err != nil {
 			return err
@@ -164,35 +123,34 @@ func ensureFileExists(filePath, promptMessage string, hidden bool) error {
 	return nil
 }
 
+// main logic
 func main() {
-	// Load configuration if available.
+	// Load existing configuration
 	config, err := loadConfig(CONFIG_FILE)
 	if err != nil {
 		log.Fatalf("Error loading config: %v", err)
 	}
 
-	// Set default values (or use values from config).
-	defaultRepo := "s3:https://s3api.cybermonkey.dev/restic"
-	if v, ok := config["REPO_FILE"]; ok {
-		defaultRepo = v
-	}
-	defaultPassFile := "/root/.restic-password"
-	if v, ok := config["PASS_FILE"]; ok {
-		defaultPassFile = v
-	}
-	defaultBackupPaths := "/root /home /var /etc /srv /usr /opt"
-	if v, ok := config["BACKUP_PATHS_STR"]; ok {
-		defaultBackupPaths = v
-	}
-	defaultAWSAccessKey := ""
-	if v, ok := config["AWS_ACCESS_KEY_ID"]; ok {
-		defaultAWSAccessKey = v
-	}
-	defaultAWSSecretKey := ""
-	if v, ok := config["AWS_SECRET_ACCESS_KEY"]; ok {
-		defaultAWSSecretKey = v
+	// Retrieve default values from config or set initial defaults.
+	defaultRepo := config["PERS_REPO_FILE_VALUE"]
+	if defaultRepo == "" {
+		defaultRepo = "s3:https://s3api.domain.com/restic/$(hostname)"
 	}
 
+	defaultPassFile := config["PERS_PASSWD_FILE"]
+	if defaultPassFile == "" {
+		defaultPassFile = "/root/.persephone-passwd"
+	}
+
+	defaultBackupPaths := config["BACKUP_PATHS_STR"]
+	if defaultBackupPaths == "" {
+		defaultBackupPaths = "/root /home /var /etc /srv /usr /opt"
+	}
+
+	defaultAWSAccessKey := config["AWS_ACCESS_KEY_ID"]
+	defaultAWSSecretKey := config["AWS_SECRET_ACCESS_KEY"]
+
+	// Prompt user with defaults retrieved from the config file.
 	fmt.Println("=== Restic Backup Configuration ===")
 	repoFile := promptInput("Enter the restic repository file path", defaultRepo, false)
 	passFile := promptInput("Enter the restic password file path", defaultPassFile, false)
@@ -202,9 +160,9 @@ func main() {
 	awsAccessKey := promptInput("Enter AWS_ACCESS_KEY_ID", defaultAWSAccessKey, false)
 	awsSecretKey := promptInput("Enter AWS_SECRET_ACCESS_KEY", defaultAWSSecretKey, true)
 
-	// Update configuration map.
-	config["REPO_FILE"] = repoFile
-	config["PASS_FILE"] = passFile
+	// Update configuration file with the new values.
+	config["PERS_REPO_FILE"] = repoFile
+	config["PERS_PASSWD_FILE"] = passFile
 	config["BACKUP_PATHS_STR"] = backupPathsStr
 	config["AWS_ACCESS_KEY_ID"] = awsAccessKey
 	config["AWS_SECRET_ACCESS_KEY"] = awsSecretKey
@@ -218,31 +176,36 @@ func main() {
 		log.Fatalf("Error ensuring file exists: %v", err)
 	}
 
-	// Prepare environment variables.
+	// Prepare environment variables for Restic.
 	env := os.Environ()
 	env = append(env, "AWS_ACCESS_KEY_ID="+awsAccessKey)
 	env = append(env, "AWS_SECRET_ACCESS_KEY="+awsSecretKey)
 
-	// Check if repository is initialized.
-	if !repoInitialized(repoFile, passFile, env) {
-		if err := initializeRepo(repoFile, passFile, env); err != nil {
+	// Initialize Restic repository if it doesn't exist.
+	fmt.Println("Checking if Restic repository is initialized...")
+	cmd := exec.Command("sudo", "restic", "--repository", repoFile, "--password-file", passFile, "snapshots")
+	cmd.Env = env
+	if err := cmd.Run(); err != nil {
+		fmt.Println("Repository not found or not initialized. Initializing repository...")
+		initCmd := exec.Command("sudo", "restic", "--repository", repoFile, "--password-file", passFile, "init")
+		initCmd.Env = env
+		initCmd.Stdout = os.Stdout
+		initCmd.Stderr = os.Stderr
+		if err := initCmd.Run(); err != nil {
 			log.Fatalf("Error initializing repository: %v", err)
 		}
+		fmt.Println("Repository initialized successfully.")
 	} else {
 		fmt.Println("Repository is already initialized.")
 	}
 
 	// Prompt user to run backup.
 	runBackup := promptInput("\nDo you want to run the backup now? (y/n)", "y", false)
-	if strings.HasPrefix(strings.ToLower(runBackup), "y") {
+	if strings.ToLower(runBackup) == "y" {
 		backupPaths := strings.Fields(backupPathsStr)
-		backupCmd := []string{
-			"sudo", "restic",
-			"--repository-file", repoFile,
-			"--password-file", passFile,
-			"--verbose", "backup",
-		}
+		backupCmd := []string{"sudo", "restic", "--repository", repoFile, "--password-file", passFile, "backup"}
 		backupCmd = append(backupCmd, backupPaths...)
+
 		fmt.Println("\nRunning Restic backup...")
 		cmd := exec.Command(backupCmd[0], backupCmd[1:]...)
 		cmd.Env = env
@@ -251,22 +214,7 @@ func main() {
 		if err := cmd.Run(); err != nil {
 			log.Fatalf("Error during backup: %v", err)
 		}
-
-		// Check snapshots.
-		fmt.Println("Backup completed. Checking snapshots...")
-		snapshotsCmd := exec.Command("sudo", "restic",
-			"--repository-file", repoFile,
-			"--password-file", passFile,
-			"snapshots",
-		)
-		snapshotsCmd.Env = env
-		snapshotsCmd.Stdout = os.Stdout
-		snapshotsCmd.Stderr = os.Stderr
-		if err := snapshotsCmd.Run(); err != nil {
-			log.Fatalf("Error checking snapshots: %v", err)
-		}
-
-		fmt.Println("Restic backup and snapshot check complete.")
+		fmt.Println("Backup completed successfully.")
 	} else {
 		fmt.Println("Backup not executed.")
 	}
