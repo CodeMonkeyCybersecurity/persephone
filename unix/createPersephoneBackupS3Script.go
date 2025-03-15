@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -97,7 +98,7 @@ func saveConfig(configFile string, config map[string]string) error {
 	return ioutil.WriteFile(configFile, []byte(data), 0644)
 }
 
-// generateBashScript generates the backup bash script content.
+// generateBashScript generates the backup bash script content with --debug flag.
 func generateBashScript(config map[string]string) string {
 	hostname, _ := os.Hostname()
 	lines := []string{
@@ -105,7 +106,8 @@ func generateBashScript(config map[string]string) string {
 		"",
 		fmt.Sprintf("export AWS_ACCESS_KEY_ID=%s", config["AWS_ACCESS_KEY_ID"]),
 		fmt.Sprintf("export AWS_SECRET_ACCESS_KEY=%s", config["AWS_SECRET_ACCESS_KEY"]),
-		fmt.Sprintf("restic -r %s --password-file %s backup --verbose %s --tag \"%s-$(date +\\%%Y-\\%%m-\\%%d_\\%%H-\\%%M-\\%%S)\"",
+		// Note: Added --debug flag after --verbose.
+		fmt.Sprintf("restic -r %s --password-file %s backup --verbose --debug %s --tag \"%s-$(date +\\%%Y-\\%%m-\\%%d_\\%%H-\\%%M-\\%%S)\"",
 			config["PERS_REPO_FILE_VALUE"], config["PERS_PASSWD_FILE"], config["BACKUP_PATHS_STR"], hostname),
 		`echo ""`,
 		`echo "finis"`,
@@ -113,18 +115,44 @@ func generateBashScript(config map[string]string) string {
 	return strings.Join(lines, "\n")
 }
 
-// generateInspectScript generates the inspect snapshots bash script content.
+// generateInspectScript generates the inspect snapshots bash script content with --debug flag.
 func generateInspectScript(config map[string]string) string {
 	lines := []string{
 		"#!/bin/bash",
 		"",
 		fmt.Sprintf("export AWS_ACCESS_KEY_ID=%s", config["AWS_ACCESS_KEY_ID"]),
 		fmt.Sprintf("export AWS_SECRET_ACCESS_KEY=%s", config["AWS_SECRET_ACCESS_KEY"]),
-		fmt.Sprintf("restic -r %s --password-file %s snapshots", config["PERS_REPO_FILE_VALUE"], config["PERS_PASSWD_FILE"]),
+		// Note: Added --debug flag before snapshots.
+		fmt.Sprintf("restic -r %s --password-file %s --debug snapshots", config["PERS_REPO_FILE_VALUE"], config["PERS_PASSWD_FILE"]),
 		`echo ""`,
 		`echo "Inspection complete."`,
 	}
 	return strings.Join(lines, "\n")
+}
+
+// backupFile creates a timestamped backup of the given file if it exists.
+func backupFile(filePath string) error {
+	if _, err := os.Stat(filePath); err == nil {
+		timestamp := time.Now().Format("20060102-150405")
+		backupPath := fmt.Sprintf("%s.backup.%s", filePath, timestamp)
+		fmt.Printf("Backing up %s to %s...\n", filePath, backupPath)
+		// Copy the file.
+		source, err := os.Open(filePath)
+		if err != nil {
+			return err
+		}
+		defer source.Close()
+		dest, err := os.Create(backupPath)
+		if err != nil {
+			return err
+		}
+		defer dest.Close()
+		if _, err := io.Copy(dest, source); err != nil {
+			return err
+		}
+		fmt.Println("Backup complete.")
+	}
+	return nil
 }
 
 func main() {
@@ -249,4 +277,21 @@ func main() {
 	fmt.Printf("Please run %s to check the backup script works correctly.\n", targetBackupPath)
 	fmt.Printf("And run %s to inspect your Persephone snapshots.\n\n", targetInspectPath)
 	fmt.Println("If everything works correctly, consider running 'go run createPersephoneSchedule.go' to set up automated backups.")
+
+	// Display final configuration for verification.
+	fmt.Printf("\nFinal backup script (%s):\n", targetBackupPath)
+	data, err := ioutil.ReadFile(targetBackupPath)
+	if err != nil {
+		fmt.Printf("Error reading %s: %v\n", targetBackupPath, err)
+	} else {
+		fmt.Println(string(data))
+	}
+
+	fmt.Printf("\nFinal inspect script (%s):\n", targetInspectPath)
+	data, err = ioutil.ReadFile(targetInspectPath)
+	if err != nil {
+		fmt.Printf("Error reading %s: %v\n", targetInspectPath, err)
+	} else {
+		fmt.Println(string(data))
+	}
 }
