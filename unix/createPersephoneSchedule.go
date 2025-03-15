@@ -35,12 +35,12 @@ func backupCrontab(lines []string) {
 	}
 }
 
-// removeResticLines returns a new slice of lines with any non-comment lines
-// containing "restic" removed and also returns the removed lines.
-func removeResticLines(lines []string) (newLines []string, removed []string) {
+// removePersephoneLines returns a new slice of lines with any non-comment lines
+// containing "persephone" removed and also returns the removed lines.
+func removePersephoneLines(lines []string) (newLines []string, removed []string) {
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		if trimmed != "" && !strings.HasPrefix(trimmed, "#") && strings.Contains(trimmed, "restic") {
+		if trimmed != "" && !strings.HasPrefix(trimmed, "#") && strings.Contains(trimmed, "persephone") {
 			removed = append(removed, line)
 		} else {
 			newLines = append(newLines, line)
@@ -69,14 +69,15 @@ func promptInput(promptMessage string, defaultVal string) string {
 }
 
 // getCronSchedule prompts the user for a cron schedule (5 fields) and returns them.
+// The default schedule is set to hourly: "0 * * * *"
 func getCronSchedule() []string {
 	for {
-		schedule := promptInput("Enter cron schedule (minute hour day-of-month month day-of-week)", "* * * * *")
+		schedule := promptInput("Enter cron schedule (minute hour day-of-month month day-of-week)", "0 * * * *")
 		fields := strings.Fields(schedule)
 		if len(fields) == 5 {
 			return fields
 		}
-		fmt.Println("Invalid schedule. Please enter exactly 5 space-separated fields (e.g., '* 2 * * *').")
+		fmt.Println("Invalid schedule. Please enter exactly 5 space-separated fields (e.g., '0 2 * * *').")
 	}
 }
 
@@ -85,16 +86,16 @@ func main() {
 	currentCron := loadCrontab()
 	backupCrontab(currentCron)
 
-	// Check for restic lines (non-comment lines containing "restic").
-	newCron, removed := removeResticLines(currentCron)
+	// Check for any lines containing "persephone" and remove them.
+	newCron, removed := removePersephoneLines(currentCron)
 	if len(removed) > 0 {
-		fmt.Println("\nFound the following restic-related lines in your crontab:")
+		fmt.Println("\nFound the following persephone-related lines in your crontab:")
 		for _, line := range removed {
 			fmt.Println("  " + line)
 		}
 		choice := promptInput("Do you want to delete these lines? (Y/n)", "Y")
 		if !(strings.EqualFold(choice, "y") || strings.EqualFold(choice, "yes") || choice == "") {
-			fmt.Println("WARNING: Multiple restic lines in the crontab may lead to undesired outcomes.")
+			fmt.Println("WARNING: Multiple persephone lines in the crontab may lead to undesired outcomes.")
 		} else {
 			currentCron = newCron
 		}
@@ -102,8 +103,9 @@ func main() {
 
 	// Prompt for a new cron schedule.
 	cronFields := getCronSchedule()
+
 	// Ask if the minute field should be randomized.
-	randChoice := promptInput("Randomize the minute field? (y/N)", "N")
+	randChoice := promptInput("Randomize the minute field? (Y/n)", "Y")
 	if strings.EqualFold(randChoice, "y") || strings.EqualFold(randChoice, "yes") {
 		rand.Seed(time.Now().UnixNano())
 		randomMinute := fmt.Sprintf("%d", rand.Intn(60))
