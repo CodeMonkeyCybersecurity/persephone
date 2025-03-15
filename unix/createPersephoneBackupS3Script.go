@@ -99,7 +99,7 @@ func saveConfig(configFile string, config map[string]string) error {
 	return ioutil.WriteFile(configFile, []byte(data), 0644)
 }
 
-// generateBashScript generates the backup bash script content with --debug flag.
+// generateBashScript generates the backup bash script content with --verbose=2 flag.
 func generateBashScript(config map[string]string) string {
 	hostname, _ := os.Hostname()
 	lines := []string{
@@ -107,8 +107,7 @@ func generateBashScript(config map[string]string) string {
 		"",
 		fmt.Sprintf("export AWS_ACCESS_KEY_ID=%s", config["AWS_ACCESS_KEY_ID"]),
 		fmt.Sprintf("export AWS_SECRET_ACCESS_KEY=%s", config["AWS_SECRET_ACCESS_KEY"]),
-		// Note: Added --debug flag after --verbose.
-		fmt.Sprintf("restic -r %s --password-file %s backup --verbose --debug %s --tag \"%s-$(date +\\%%Y-\\%%m-\\%%d_\\%%H-\\%%M-\\%%S)\"",
+		fmt.Sprintf("restic -r %s --password-file %s backup --verbose=2 %s --tag \"%s-$(date +\\%%Y-\\%%m-\\%%d_\\%%H-\\%%M-\\%%S)\"",
 			config["PERS_REPO_FILE_VALUE"], config["PERS_PASSWD_FILE"], config["BACKUP_PATHS_STR"], hostname),
 		`echo ""`,
 		`echo "finis"`,
@@ -116,15 +115,15 @@ func generateBashScript(config map[string]string) string {
 	return strings.Join(lines, "\n")
 }
 
-// generateInspectScript generates the inspect snapshots bash script content with --debug flag.
+// generateInspectScript generates the inspect snapshots bash script content with --verbose=2 flag.
 func generateInspectScript(config map[string]string) string {
 	lines := []string{
 		"#!/bin/bash",
 		"",
 		fmt.Sprintf("export AWS_ACCESS_KEY_ID=%s", config["AWS_ACCESS_KEY_ID"]),
 		fmt.Sprintf("export AWS_SECRET_ACCESS_KEY=%s", config["AWS_SECRET_ACCESS_KEY"]),
-		// Note: Added --debug flag before snapshots.
-		fmt.Sprintf("restic -r %s --password-file %s --debug snapshots", config["PERS_REPO_FILE_VALUE"], config["PERS_PASSWD_FILE"]),
+		// Note: Added --verbose=2 flag after snapshots.
+		fmt.Sprintf("restic -r %s --password-file %s snapshots --verbose=2", config["PERS_REPO_FILE_VALUE"], config["PERS_PASSWD_FILE"]),
 		`echo ""`,
 		`echo "Inspection complete."`,
 	}
