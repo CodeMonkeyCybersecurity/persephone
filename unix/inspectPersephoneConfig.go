@@ -17,7 +17,7 @@ func inspectDirectory(root string) {
 		}
 		name := info.Name()
 		if name == ".persephone.conf" ||
-			strings.Contains(name, "persephone") ||
+			strings.Contains(name, "persephone") {
 			
 			itemType := "File"
 			if info.IsDir() {
